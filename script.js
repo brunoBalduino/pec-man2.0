@@ -1,1686 +1,2033 @@
 "use strict";
 
 /*
-============================================================
-NEON MAZE DUO — CAMPAIGN EDITION
-============================================================
+    MAZE CLASH
+    Jogo 2D para 2 jogadores
+    Sem bibliotecas externas.
 
-5 fases
-3 dificuldades
-2 jogadores
-3 habilidades por jogador
-inimigos com comportamentos diferentes
-portais
-power-ups
-combo
-progressão
+    JOGADOR 1:
+    W A S D = movimento
+    SPACE = dash
+    Q = pulso
 
+    JOGADOR 2:
+    SETAS = movimento
+    ENTER = dash
+    SHIFT = pulso
+
+    P = pausa
+    R = reiniciar
 */
 
-/* ============================================================
-CANVAS
-============================================================ */
 
-const canvas =
-document.getElementById("gameCanvas");
+/* =========================================================
+   CANVAS
+========================================================= */
 
-const ctx =
-canvas.getContext("2d");
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
-const TILE = 32;
+const W = canvas.width;
+const H = canvas.height;
 
-const COLS = 28;
-const ROWS = 20;
 
-const WIDTH =
-COLS * TILE;
+/* =========================================================
+   INTERFACE
+========================================================= */
 
-const HEIGHT =
-ROWS * TILE;
+const startScreen = document.getElementById("startScreen");
+const pauseScreen = document.getElementById("pauseScreen");
+const messageScreen = document.getElementById("messageScreen");
 
-canvas.width = WIDTH;
-canvas.height = HEIGHT;
+const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const restartBtn = document.getElementById("restartBtn");
+const resumeBtn = document.getElementById("resumeBtn");
 
-/* ============================================================
-INTERFACE
-============================================================ */
+const messageBtn = document.getElementById("messageBtn");
+const messageTitle = document.getElementById("messageTitle");
+const messageText = document.getElementById("messageText");
+const messageIcon = document.getElementById("messageIcon");
 
-const score1 =
-document.getElementById("score1");
+const score1El = document.getElementById("score1");
+const score2El = document.getElementById("score2");
 
-const score2 =
-document.getElementById("score2");
+const lives1El = document.getElementById("lives1");
+const lives2El = document.getElementById("lives2");
 
-const lives1 =
-document.getElementById("lives1");
+const levelEl = document.getElementById("level");
+const difficultyLabel = document.getElementById("difficultyLabel");
+const progressBar = document.getElementById("progressBar");
+const objectiveEl = document.getElementById("objective");
 
-const lives2 =
-document.getElementById("lives2");
 
-const dash1 =
-document.getElementById("dash1");
+/* =========================================================
+   CONSTANTES
+========================================================= */
 
-const pulse1 =
-document.getElementById("pulse1");
+const TILE = 40;
 
-const shield1 =
-document.getElementById("shield1");
+const COLS = 21;
+const ROWS = 15;
 
-const dash2 =
-document.getElementById("dash2");
+const MAP_WIDTH = COLS * TILE;
+const MAP_HEIGHT = ROWS * TILE;
 
-const pulse2 =
-document.getElementById("pulse2");
 
-const shield2 =
-document.getElementById("shield2");
+/*
+    1 = parede
+    0 = caminho
+    2 = cristal
+    3 = power-up
+*/
 
-const phaseLabel =
-document.getElementById("phaseLabel");
+const MAPS = [
 
-const phaseName =
-document.getElementById("phaseName");
+    [
+        "111111111111111111111",
+        "100000000010000000001",
+        "101111011010110111101",
+        "100000010000010000001",
+        "101110111011101110101",
+        "100010000000000010001",
+        "111010111000111010111",
+        "100000100000001000001",
+        "111010111000111010111",
+        "100010000000000010001",
+        "101110111011101110101",
+        "100000010000010000001",
+        "101111011010110111101",
+        "100000000010000000001",
+        "111111111111111111111"
+    ],
 
-const statusText =
-document.getElementById("statusText");
+    [
+        "111111111111111111111",
+        "100000000000000000001",
+        "101111011111101111101",
+        "100000010000010000001",
+        "111110111011101111101",
+        "100010000000000010001",
+        "101010111000111010101",
+        "100000100000001000001",
+        "101010111000111010101",
+        "100010000000000010001",
+        "111110111011101111101",
+        "100000010000010000001",
+        "101111011111101111101",
+        "100000000000000000001",
+        "111111111111111111111"
+    ],
 
-const progressBar =
-document.getElementById("progressBar");
-
-const difficultyBadge =
-document.getElementById("difficultyBadge");
-
-const restartBtn =
-document.getElementById("restartBtn");
-
-const difficultyScreen =
-document.getElementById("difficultyScreen");
-
-const phaseScreen =
-document.getElementById("phaseScreen");
-
-const resultScreen =
-document.getElementById("resultScreen");
-
-const phaseIcon =
-document.getElementById("phaseIcon");
-
-const phaseTitle =
-document.getElementById("phaseTitle");
-
-const phaseDescription =
-document.getElementById("phaseDescription");
-
-const continueBtn =
-document.getElementById("continueBtn");
-
-const resultIcon =
-document.getElementById("resultIcon");
-
-const resultTitle =
-document.getElementById("resultTitle");
-
-const resultText =
-document.getElementById("resultText");
-
-const resultBtn =
-document.getElementById("resultBtn");
-
-const resultScore1 =
-document.getElementById("resultScore1");
-
-const resultScore2 =
-document.getElementById("resultScore2");
-
-/* ============================================================
-FASES
-============================================================ */
-
-const PHASES = [
-
-{
-    name: "NEON BASE",
-    description:
-        "O setor inicial foi tomado pelos invasores.",
-    color: "#21e5ff",
-    enemyCount: 3,
-    enemySpeed: 1.0
-},
-
-{
-    name: "DARK FACTORY",
-    description:
-        "As máquinas foram ativadas. O labirinto ficou mais perigoso.",
-    color: "#b55cff",
-    enemyCount: 4,
-    enemySpeed: 1.08
-},
-
-{
-    name: "CYBER GRID",
-    description:
-        "A rede central está protegida por caçadores mais rápidos.",
-    color: "#3187ff",
-    enemyCount: 5,
-    enemySpeed: 1.15
-},
-
-{
-    name: "INFERNO MAZE",
-    description:
-        "O núcleo de energia está instável. Não fique parado.",
-    color: "#ff416c",
-    enemyCount: 6,
-    enemySpeed: 1.25
-},
-
-{
-    name: "FINAL CORE",
-    description:
-        "O núcleo final está à sua frente. Complete a campanha.",
-    color: "#ffd447",
-    enemyCount: 7,
-    enemySpeed: 1.35
-}
+    [
+        "111111111111111111111",
+        "100000100000000100001",
+        "101110101111111101101",
+        "100010100000000101001",
+        "111010111011101101111",
+        "100000001000100000001",
+        "101111101010101111101",
+        "100000000000000000001",
+        "101111101010101111101",
+        "100000001000100000001",
+        "111010111011101101111",
+        "100010100000000101001",
+        "101110101111111101101",
+        "100000100000000100001",
+        "111111111111111111111"
+    ]
 
 ];
 
-/* ============================================================
-DIFICULDADES
-============================================================ */
+
+/* =========================================================
+   CONFIGURAÇÕES DE DIFICULDADE
+========================================================= */
 
 const DIFFICULTIES = {
 
-easy: {
+    easy: {
+        label: "FÁCIL",
+        enemySpeed: 1.05,
+        enemyCount: 3,
+        enemyDamageCooldown: 1.4,
+        dashCooldown: 3.0,
+        pulseCooldown: 5.0
+    },
 
-    name: "FÁCIL",
+    normal: {
+        label: "NORMAL",
+        enemySpeed: 1.35,
+        enemyCount: 4,
+        enemyDamageCooldown: 1.2,
+        dashCooldown: 3.0,
+        pulseCooldown: 4.5
+    },
 
-    enemyMultiplier: .78,
-
-    lives: 4,
-
-    itemMultiplier: 1.0,
-
-    abilityMultiplier: .75
-
-},
-
-normal: {
-
-    name: "NORMAL",
-
-    enemyMultiplier: 1,
-
-    lives: 3,
-
-    itemMultiplier: 1.0,
-
-    abilityMultiplier: 1
-
-},
-
-hard: {
-
-    name: "DIFÍCIL",
-
-    enemyMultiplier: 1.28,
-
-    lives: 2,
-
-    itemMultiplier: .9,
-
-    abilityMultiplier: 1.25
-
-}
+    hard: {
+        label: "DIFÍCIL",
+        enemySpeed: 1.65,
+        enemyCount: 5,
+        enemyDamageCooldown: 1.0,
+        dashCooldown: 3.0,
+        pulseCooldown: 4.0
+    }
 
 };
 
-let difficulty =
-DIFFICULTIES.normal;
 
-let difficultyKey =
-"normal";
+/* =========================================================
+   ESTADO DO JOGO
+========================================================= */
 
-/* ============================================================
-ESTADO
-============================================================ */
+let difficulty = "normal";
 
-let phaseIndex = 0;
+let gameRunning = false;
+let paused = false;
 
-let grid = [];
+let level = 1;
 
-let pellets = [];
-
-let crystals = [];
-
-let portals = [];
-
-let enemies = [];
+let lastTime = 0;
 
 let particles = [];
 
-let floatingTexts = [];
+let crystals = [];
 
-let remainingItems = 0;
+let powerUps = [];
 
-let totalItems = 0;
+let enemies = [];
 
-let frame = 0;
+let portals = [];
 
-let gameRunning = false;
+let keys = {};
 
-let phaseFinished = false;
+let totalCrystals = 0;
 
-let combo = 0;
+let collectedCrystals = 0;
 
-let comboTimer = 0;
+let screenShake = 0;
 
-let audioContext = null;
 
-/* ============================================================
-INPUT
-============================================================ */
+/* =========================================================
+   OBJETOS
+========================================================= */
 
-const keys = {};
+let player1;
+let player2;
 
-const justPressed = {};
 
-window.addEventListener(
-"keydown",
-event => {
+/* =========================================================
+   DIREÇÕES
+========================================================= */
 
-    const controlledKeys = [
+const DIR = {
 
-        "KeyW",
-        "KeyA",
-        "KeyS",
-        "KeyD",
+    up: {
+        x: 0,
+        y: -1
+    },
 
-        "ArrowUp",
-        "ArrowDown",
-        "ArrowLeft",
-        "ArrowRight",
+    down: {
+        x: 0,
+        y: 1
+    },
 
-        "ShiftLeft",
-        "Space",
-        "KeyQ",
+    left: {
+        x: -1,
+        y: 0
+    },
 
-        "Enter",
-        "Slash",
-        "Period"
-
-    ];
-
-    if (
-        controlledKeys.includes(
-            event.code
-        )
-    ) {
-
-        event.preventDefault();
-
+    right: {
+        x: 1,
+        y: 0
     }
-
-
-    if (
-        !keys[event.code]
-    ) {
-
-        justPressed[
-            event.code
-        ] = true;
-
-    }
-
-    keys[event.code] = true;
-
-}
-
-);
-
-window.addEventListener(
-"keyup",
-event => {
-
-    keys[event.code] = false;
-
-}
-
-);
-
-/* ============================================================
-SOM
-============================================================ */
-
-function tone(
-frequency,
-duration = .06,
-type = "sine"
-) {
-
-try {
-
-    if (!audioContext) {
-
-        audioContext =
-            new (
-                window.AudioContext ||
-                window.webkitAudioContext
-            )();
-
-    }
-
-    if (
-        audioContext.state ===
-        "suspended"
-    ) {
-
-        audioContext.resume();
-
-    }
-
-    const oscillator =
-        audioContext.createOscillator();
-
-    const gain =
-        audioContext.createGain();
-
-    oscillator.type =
-        type;
-
-    oscillator.frequency.value =
-        frequency;
-
-    gain.gain.setValueAtTime(
-        .045,
-        audioContext.currentTime
-    );
-
-    gain.gain.exponentialRampToValueAtTime(
-        .001,
-        audioContext.currentTime +
-        duration
-    );
-
-    oscillator.connect(gain);
-
-    gain.connect(
-        audioContext.destination
-    );
-
-    oscillator.start();
-
-    oscillator.stop(
-        audioContext.currentTime +
-        duration
-    );
-
-} catch (error) {
-
-    /* Som opcional. */
-
-}
-
-}
-
-/* ============================================================
-UTILITÁRIOS
-============================================================ */
-
-function clamp(
-value,
-min,
-max
-) {
-
-return Math.max(
-    min,
-    Math.min(max, value)
-);
-
-}
-
-function distance(
-a,
-b
-) {
-
-return Math.hypot(
-    a.x - b.x,
-    a.y - b.y
-);
-
-}
-
-function cell(
-col,
-row
-) {
-
-return {
-
-    x:
-        col * TILE +
-        TILE / 2,
-
-    y:
-        row * TILE +
-        TILE / 2
 
 };
 
+
+/* =========================================================
+   UTILIDADES
+========================================================= */
+
+function clamp(value, min, max) {
+
+    return Math.max(min, Math.min(max, value));
+
 }
 
-function isWall(
-col,
-row
-) {
 
-if (
-    col < 0 ||
-    col >= COLS ||
-    row < 0 ||
-    row >= ROWS
-) {
+function distance(a, b) {
+
+    return Math.hypot(
+        a.x - b.x,
+        a.y - b.y
+    );
+
+}
+
+
+function random(min, max) {
+
+    return Math.random() * (max - min) + min;
+
+}
+
+
+function tileCenter(col, row) {
+
+    return {
+        x: col * TILE + TILE / 2,
+        y: row * TILE + TILE / 2
+    };
+
+}
+
+
+function isWallAtPixel(x, y) {
+
+    const col = Math.floor(x / TILE);
+    const row = Math.floor(y / TILE);
+
+    if (
+        col < 0 ||
+        row < 0 ||
+        col >= COLS ||
+        row >= ROWS
+    ) {
+        return true;
+    }
+
+    return MAPS[level - 1][row][col] === "1";
+
+}
+
+
+function canMoveTo(x, y, radius) {
+
+    const points = [
+
+        { x: x - radius, y: y - radius },
+        { x: x + radius, y: y - radius },
+        { x: x - radius, y: y + radius },
+        { x: x + radius, y: y + radius }
+
+    ];
+
+    for (const point of points) {
+
+        if (isWallAtPixel(point.x, point.y)) {
+            return false;
+        }
+
+    }
 
     return true;
 
 }
 
-return grid[row][col] === "#";
 
-}
+function randomFreePosition() {
 
-/* ============================================================
-MAPA PROCEDURAL
-============================================================ */
+    for (let i = 0; i < 500; i++) {
 
-function generateMap() {
-
-grid = [];
-
-for (
-    let row = 0;
-    row < ROWS;
-    row++
-) {
-
-    grid[row] = [];
-
-    for (
-        let col = 0;
-        col < COLS;
-        col++
-    ) {
-
-        const border =
-            row === 0 ||
-            row === ROWS - 1 ||
-            col === 0 ||
-            col === COLS - 1;
-
-        grid[row][col] =
-            border
-                ? "#"
-                : " ";
-
-    }
-
-}
-
-
-/*
-    Paredes verticais.
-    A fase altera os intervalos.
-*/
-
-const verticalSets = [
-
-    [4, 9, 14, 19, 24],
-
-    [5, 9, 14, 18, 23],
-
-    [3, 7, 12, 16, 21, 25],
-
-    [4, 8, 13, 18, 23],
-
-    [3, 6, 10, 15, 20, 24]
-
-];
-
-
-const horizontalSets = [
-
-    [6, 13],
-
-    [5, 10, 15],
-
-    [6, 11, 16],
-
-    [5, 9, 14],
-
-    [6, 10, 13, 16]
-
-];
-
-
-const verticals =
-    verticalSets[
-        phaseIndex
-    ];
-
-const horizontals =
-    horizontalSets[
-        phaseIndex
-    ];
-
-
-/*
-    Cria paredes verticais
-    com espaços de passagem.
-*/
-
-verticals.forEach(
-    (col, index) => {
-
-        for (
-            let row = 2;
-            row < ROWS - 2;
-            row++
-        ) {
-
-            const gap =
-                (
-                    row +
-                    index * 2 +
-                    phaseIndex
-                ) % 6 === 0;
-
-            if (!gap) {
-
-                grid[row][col] = "#";
-
-            }
-
-        }
-
-    }
-);
-
-
-/*
-    Paredes horizontais.
-*/
-
-horizontals.forEach(
-    (row, index) => {
-
-        for (
-            let col = 2;
-            col < COLS - 2;
-            col++
-        ) {
-
-            const gap =
-                (
-                    col +
-                    index * 3 +
-                    phaseIndex
-                ) % 7 === 0;
-
-            if (!gap) {
-
-                grid[row][col] = "#";
-
-            }
-
-        }
-
-    }
-);
-
-
-/*
-    Áreas abertas obrigatórias
-    para os jogadores.
-*/
-
-clearArea(
-    1,
-    1,
-    4,
-    3
-);
-
-clearArea(
-    COLS - 5,
-    ROWS - 4,
-    4,
-    3
-);
-
-clearArea(
-    12,
-    8,
-    4,
-    4
-);
-
-
-/*
-    Corredores centrais.
-*/
-
-for (
-    let col = 1;
-    col < COLS - 1;
-    col++
-) {
-
-    grid[9][col] = " ";
-
-}
-
-
-for (
-    let row = 1;
-    row < ROWS - 1;
-    row++
-) {
-
-    grid[row][14] = " ";
-
-}
-
-
-/*
-    Portais.
-*/
-
-portals = [
-
-    cell(1, 9),
-
-    cell(
-        COLS - 2,
-        9
-    )
-
-];
-
-}
-
-function clearArea(
-startCol,
-startRow,
-width,
-height
-) {
-
-for (
-    let row = startRow;
-    row < startRow + height;
-    row++
-) {
-
-    for (
-        let col = startCol;
-        col < startCol + width;
-        col++
-    ) {
+        const col = Math.floor(random(1, COLS - 1));
+        const row = Math.floor(random(1, ROWS - 1));
 
         if (
-            row > 0 &&
-            row < ROWS - 1 &&
-            col > 0 &&
-            col < COLS - 1
+            MAPS[level - 1][row][col] !== "1"
         ) {
 
-            grid[row][col] = " ";
+            return tileCenter(col, row);
 
         }
 
     }
 
-}
-
-}
-
-/* ============================================================
-ITENS
-============================================================ */
-
-function createItems() {
-
-pellets = [];
-
-crystals = [];
-
-const skip =
-    Math.random();
-
-
-for (
-    let row = 1;
-    row < ROWS - 1;
-    row++
-) {
-
-    for (
-        let col = 1;
-        col < COLS - 1;
-        col++
-    ) {
-
-        if (
-            isWall(col, row)
-        ) {
-
-            continue;
-
-        }
-
-
-        /*
-            Não colocar itens
-            nas bases.
-        */
-
-        const p1 =
-            cell(2, 2);
-
-        const p2 =
-            cell(
-                COLS - 3,
-                ROWS - 3
-            );
-
-        const position =
-            cell(col, row);
-
-
-        if (
-            distance(
-                position,
-                p1
-            ) < 55 ||
-            distance(
-                position,
-                p2
-            ) < 55
-        ) {
-
-            continue;
-
-        }
-
-
-        /*
-            Alguns corredores
-            recebem cristal.
-        */
-
-        const special =
-            (
-                col * 3 +
-                row * 7 +
-                phaseIndex * 5
-            ) % 31 === 0;
-
-
-        if (special) {
-
-            crystals.push({
-
-                x: position.x,
-
-                y: position.y,
-
-                collected: false,
-
-                phase:
-                    Math.random() * 10
-
-            });
-
-        } else {
-
-            pellets.push({
-
-                x: position.x,
-
-                y: position.y,
-
-                collected: false,
-
-                phase:
-                    Math.random() * 10
-
-            });
-
-        }
-
-    }
+    return tileCenter(1, 1);
 
 }
 
 
-remainingItems =
-    pellets.length +
-    crystals.length;
+/* =========================================================
+   CRIAÇÃO DOS JOGADORES
+========================================================= */
 
-totalItems =
-    remainingItems;
+function createPlayers() {
 
-}
+    const p1Start = tileCenter(1, 1);
 
-/* ============================================================
-COLISÃO
-============================================================ */
-
-function canMove(
-x,
-y,
-radius
-) {
-
-const points = [
-
-    {
-        x: x - radius,
-        y: y - radius
-    },
-
-    {
-        x: x + radius,
-        y: y - radius
-    },
-
-    {
-        x: x - radius,
-        y: y + radius
-    },
-
-    {
-        x: x + radius,
-        y: y + radius
-    }
-
-];
+    const p2Start = tileCenter(COLS - 2, ROWS - 2);
 
 
-for (
-    const point of points
-) {
+    player1 = {
 
-    const col =
-        Math.floor(
-            point.x / TILE
-        );
+        x: p1Start.x,
+        y: p1Start.y,
 
-    const row =
-        Math.floor(
-            point.y / TILE
-        );
+        radius: 13,
+
+        speed: 145,
+
+        dir: { x: 1, y: 0 },
+
+        desired: { x: 1, y: 0 },
+
+        color: "#24b7ff",
+
+        score: 0,
+
+        lives: 3,
+
+        dashTimer: 0,
+
+        pulseTimer: 0,
+
+        invincible: 0,
+
+        powerTimer: 0,
+
+        dashFlash: 0
+
+    };
 
 
-    if (
-        isWall(col, row)
-    ) {
+    player2 = {
 
-        return false;
+        x: p2Start.x,
+        y: p2Start.y,
 
-    }
+        radius: 13,
 
-}
+        speed: 145,
 
-return true;
+        dir: { x: -1, y: 0 },
 
-}
+        desired: { x: -1, y: 0 },
 
-/* ============================================================
-PARTÍCULAS
-============================================================ */
+        color: "#ff8b32",
 
-function particlesBurst(
-x,
-y,
-color,
-amount = 15
-) {
+        score: 0,
 
-for (
-    let i = 0;
-    i < amount;
-    i++
-) {
+        lives: 3,
 
-    particles.push({
+        dashTimer: 0,
 
-        x,
-        y,
+        pulseTimer: 0,
 
-        vx:
-            (Math.random() - .5) *
-            5,
+        invincible: 0,
 
-        vy:
-            (Math.random() - .5) *
-            5,
+        powerTimer: 0,
 
-        size:
-            2 +
-            Math.random() * 4,
+        dashFlash: 0
 
-        life:
-            20 +
-            Math.random() * 30,
-
-        color
-
-    });
+    };
 
 }
 
-}
 
-function updateParticles() {
+/* =========================================================
+   CRISTAIS
+========================================================= */
 
-particles.forEach(
-    particle => {
+function createCrystals() {
 
-        particle.x +=
-            particle.vx;
+    crystals = [];
 
-        particle.y +=
-            particle.vy;
+    collectedCrystals = 0;
 
-        particle.vx *= .95;
-        particle.vy *= .95;
 
-        particle.life--;
+    for (let row = 1; row < ROWS - 1; row++) {
 
-    }
-);
-
-
-particles =
-    particles.filter(
-        particle =>
-            particle.life > 0
-    );
-
-
-floatingTexts.forEach(
-    text => {
-
-        text.y -= .5;
-
-        text.life--;
-
-    }
-);
-
-
-floatingTexts =
-    floatingTexts.filter(
-        text =>
-            text.life > 0
-    );
-
-}
-
-function drawParticles() {
-
-particles.forEach(
-    particle => {
-
-        ctx.globalAlpha =
-            particle.life / 50;
-
-        ctx.fillStyle =
-            particle.color;
-
-        ctx.fillRect(
-            particle.x,
-            particle.y,
-            particle.size,
-            particle.size
-        );
-
-    }
-);
-
-
-ctx.globalAlpha = 1;
-
-
-floatingTexts.forEach(
-    text => {
-
-        ctx.globalAlpha =
-            text.life / 50;
-
-        ctx.fillStyle =
-            text.color;
-
-        ctx.font =
-            "bold 12px Arial";
-
-        ctx.textAlign =
-            "center";
-
-        ctx.fillText(
-            text.text,
-            text.x,
-            text.y
-        );
-
-    }
-);
-
-
-ctx.globalAlpha = 1;
-
-}
-
-/* ============================================================
-PLAYER
-============================================================ */
-
-class Player {
-
-constructor(
-    config
-) {
-
-    this.name =
-        config.name;
-
-    this.color =
-        config.color;
-
-    this.spawnX =
-        config.x;
-
-    this.spawnY =
-        config.y;
-
-    this.x =
-        config.x;
-
-    this.y =
-        config.y;
-
-    this.radius = 10;
-
-    this.speed = 2.65;
-
-    this.dirX = 0;
-    this.dirY = 0;
-
-    this.nextX = 0;
-    this.nextY = 0;
-
-    this.score = 0;
-
-    this.lives =
-        difficulty.lives;
-
-    this.powerTimer = 0;
-
-    this.invincible = 90;
-
-    this.portalCooldown = 30;
-
-    /*
-        Habilidades
-    */
-
-    this.dashCooldown = 0;
-
-    this.pulseCooldown = 0;
-
-    this.shieldCooldown = 0;
-
-    this.shieldTimer = 0;
-
-    this.dashTimer = 0;
-
-    this.dashDistance = 0;
-
-    this.pulseEffect = 0;
-
-    this.alive = true;
-
-    this.controls =
-        config.controls;
-
-}
-
-
-resetPosition() {
-
-    this.x =
-        this.spawnX;
-
-    this.y =
-        this.spawnY;
-
-    this.dirX = 0;
-    this.dirY = 0;
-
-    this.nextX = 0;
-    this.nextY = 0;
-
-    this.invincible = 100;
-
-    this.portalCooldown = 35;
-
-    this.dashTimer = 0;
-
-    this.dashDistance = 0;
-
-}
-
-
-update() {
-
-    if (!this.alive) {
-        return;
-    }
-
-
-    /*
-        Movimento.
-    */
-
-    if (
-        keys[
-            this.controls.up
-        ]
-    ) {
-
-        this.nextX = 0;
-        this.nextY = -1;
-
-    }
-
-    if (
-        keys[
-            this.controls.down
-        ]
-    ) {
-
-        this.nextX = 0;
-        this.nextY = 1;
-
-    }
-
-    if (
-        keys[
-            this.controls.left
-        ]
-    ) {
-
-        this.nextX = -1;
-        this.nextY = 0;
-
-    }
-
-    if (
-        keys[
-            this.controls.right
-        ]
-    ) {
-
-        this.nextX = 1;
-        this.nextY = 0;
-
-    }
-
-
-    /*
-        Habilidades.
-    */
-
-    if (
-        justPressed[
-            this.controls.dash
-        ]
-    ) {
-
-        this.useDash();
-
-    }
-
-
-    if (
-        justPressed[
-            this.controls.pulse
-        ]
-    ) {
-
-        this.usePulse();
-
-    }
-
-
-    if (
-        justPressed[
-            this.controls.shield
-        ]
-    ) {
-
-        this.useShield();
-
-    }
-
-
-    /*
-        Virar.
-    */
-
-    if (
-        canMove(
-            this.x +
-            this.nextX *
-            this.speed *
-            2,
-
-            this.y +
-            this.nextY *
-            this.speed *
-            2,
-
-            this.radius
-        )
-    ) {
-
-        this.dirX =
-            this.nextX;
-
-        this.dirY =
-            this.nextY;
-
-    }
-
-
-    /*
-        Velocidade.
-    */
-
-    let currentSpeed =
-        this.speed;
-
-
-    if (
-        this.dashTimer > 0
-    ) {
-
-        currentSpeed =
-            8.5;
-
-        this.dashTimer--;
-
-    }
-
-
-    const nextX =
-        this.x +
-        this.dirX *
-        currentSpeed;
-
-    const nextY =
-        this.y +
-        this.dirY *
-        currentSpeed;
-
-
-    if (
-        canMove(
-            nextX,
-            nextY,
-            this.radius
-        )
-    ) {
-
-        this.x = nextX;
-        this.y = nextY;
-
-    }
-
-
-    /*
-        Timers.
-    */
-
-    this.invincible =
-        Math.max(
-            0,
-            this.invincible - 1
-        );
-
-    this.portalCooldown =
-        Math.max(
-            0,
-            this.portalCooldown - 1
-        );
-
-    this.dashCooldown =
-        Math.max(
-            0,
-            this.dashCooldown - 1
-        );
-
-    this.pulseCooldown =
-        Math.max(
-            0,
-            this.pulseCooldown - 1
-        );
-
-    this.shieldCooldown =
-        Math.max(
-            0,
-            this.shieldCooldown - 1
-        );
-
-    this.shieldTimer =
-        Math.max(
-            0,
-            this.shieldTimer - 1
-        );
-
-    this.powerTimer =
-        Math.max(
-            0,
-            this.powerTimer - 1
-        );
-
-
-    collectItems(this);
-
-    usePortal(this);
-
-}
-
-
-useDash() {
-
-    if (
-        this.dashCooldown > 0
-    ) {
-
-        return;
-
-    }
-
-
-    /*
-        Dash fica disponível
-        na direção atual.
-    */
-
-    if (
-        this.dirX === 0 &&
-        this.dirY === 0
-    ) {
-
-        this.dirX = 1;
-
-    }
-
-
-    this.dashTimer = 14;
-
-    this.dashCooldown =
-        Math.round(
-            100 *
-            difficulty.abilityMultiplier
-        );
-
-
-    particlesBurst(
-        this.x,
-        this.y,
-        this.color,
-        15
-    );
-
-    tone(
-        700,
-        .08,
-        "square"
-    );
-
-}
-
-
-usePulse() {
-
-    if (
-        this.pulseCooldown > 0
-    ) {
-
-        return;
-
-    }
-
-
-    this.pulseCooldown =
-        Math.round(
-            180 *
-            difficulty.abilityMultiplier
-        );
-
-
-    this.pulseEffect = 25;
-
-
-    const radius =
-        105;
-
-
-    let hits = 0;
-
-
-    enemies.forEach(
-        enemy => {
+        for (let col = 1; col < COLS - 1; col++) {
 
             if (
-                distance(
-                    this,
-                    enemy
-                ) <= radius
+                MAPS[level - 1][row][col] !== "1"
             ) {
 
-                enemy.stunTimer =
-                    150;
+                const pos = tileCenter(col, row);
 
-                enemy.knockX =
-                    enemy.x -
-                    this.x;
+                const nearP1 =
+                    distance(
+                        pos,
+                        tileCenter(1, 1)
+                    ) < 80;
 
-                enemy.knockY =
-                    enemy.y -
-                    this.y;
+                const nearP2 =
+                    distance(
+                        pos,
+                        tileCenter(COLS - 2, ROWS - 2)
+                    ) < 80;
 
-                hits++;
+
+                if (
+                    !nearP1 &&
+                    !nearP2 &&
+                    Math.random() < .78
+                ) {
+
+                    crystals.push({
+
+                        x: pos.x,
+                        y: pos.y,
+
+                        value: 10,
+
+                        pulse: random(0, Math.PI * 2),
+
+                        active: true
+
+                    });
+
+                }
 
             }
 
         }
-    );
+
+    }
+
+    totalCrystals = crystals.length;
+
+}
 
 
-    if (hits > 0) {
+/* =========================================================
+   POWER UPS
+========================================================= */
 
-        this.score +=
-            50 * hits;
+function createPowerUps() {
 
-        floatingTexts.push({
+    powerUps = [];
 
-            x: this.x,
+    const types = [
+        "speed",
+        "shield",
+        "freeze",
+        "bomb"
+    ];
 
-            y: this.y - 20,
 
-            text:
-                `PULSE +${50 * hits}`,
+    for (let i = 0; i < 4; i++) {
 
-            color:
-                "#21e5ff",
+        const pos = randomFreePosition();
 
-            life: 50
+        powerUps.push({
+
+            x: pos.x,
+            y: pos.y,
+
+            type: types[i],
+
+            active: true,
+
+            rotation: random(0, Math.PI * 2)
 
         });
 
     }
 
+}
 
-    particlesBurst(
-        this.x,
-        this.y,
-        "#21e5ff",
-        30
-    );
 
-    tone(
-        350,
-        .15,
-        "sine"
-    );
+/* =========================================================
+   INIMIGOS
+========================================================= */
+
+function createEnemies() {
+
+    enemies = [];
+
+    const config = DIFFICULTIES[difficulty];
+
+
+    for (let i = 0; i < config.enemyCount; i++) {
+
+        let pos = randomFreePosition();
+
+
+        while (
+            distance(pos, player1) < 180 ||
+            distance(pos, player2) < 180
+        ) {
+
+            pos = randomFreePosition();
+
+        }
+
+
+        enemies.push({
+
+            x: pos.x,
+            y: pos.y,
+
+            radius: 13,
+
+            speed:
+                config.enemySpeed *
+                random(.85, 1.15),
+
+            color:
+                [
+                    "#ff3f68",
+                    "#b45cff",
+                    "#42e6a4",
+                    "#ffcf4a",
+                    "#ff5aa8"
+                ][i % 5],
+
+            stunned: 0,
+
+            changeTimer: random(0, 2),
+
+            target: null
+
+        });
+
+    }
 
 }
 
 
-useShield() {
+/* =========================================================
+   PORTAIS
+========================================================= */
 
-    if (
-        this.shieldCooldown > 0
-    ) {
+function createPortals() {
 
-        return;
+    portals = [];
+
+
+    portals.push({
+
+        x: tileCenter(1, ROWS - 2).x,
+        y: tileCenter(1, ROWS - 2).y,
+
+        radius: 16,
+
+        color: "#a855f7",
+
+        phase: 0
+
+    });
+
+
+    portals.push({
+
+        x: tileCenter(COLS - 2, 1).x,
+        y: tileCenter(COLS - 2, 1).y,
+
+        radius: 16,
+
+        color: "#32e875",
+
+        phase: Math.PI
+
+    });
+
+}
+
+
+/* =========================================================
+   INICIALIZAÇÃO DA FASE
+========================================================= */
+
+function initLevel() {
+
+    createPlayers();
+
+    createCrystals();
+
+    createPowerUps();
+
+    createEnemies();
+
+    createPortals();
+
+    updateHUD();
+
+}
+
+
+/* =========================================================
+   PARTÍCULAS
+========================================================= */
+
+function spawnParticles(
+    x,
+    y,
+    color,
+    amount = 10
+) {
+
+    for (let i = 0; i < amount; i++) {
+
+        particles.push({
+
+            x,
+            y,
+
+            vx: random(-90, 90),
+            vy: random(-90, 90),
+
+            life: random(.3, .8),
+
+            maxLife: .8,
+
+            size: random(2, 5),
+
+            color
+
+        });
 
     }
 
+}
 
-    this.shieldCooldown =
-        Math.round(
-            240 *
-            difficulty.abilityMultiplier
+
+function updateParticles(dt) {
+
+    for (const p of particles) {
+
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        p.vx *= .97;
+        p.vy *= .97;
+
+        p.life -= dt;
+
+    }
+
+    particles =
+        particles.filter(
+            p => p.life > 0
+        );
+
+}
+
+
+/* =========================================================
+   INPUT
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        keys[event.code] = true;
+
+
+        if (
+            [
+                "ArrowUp",
+                "ArrowDown",
+                "ArrowLeft",
+                "ArrowRight",
+                "Space",
+                "Enter"
+            ].includes(event.code)
+        ) {
+
+            event.preventDefault();
+
+        }
+
+
+        if (
+            event.code === "KeyP" &&
+            gameRunning
+        ) {
+
+            togglePause();
+
+        }
+
+
+        if (
+            event.code === "KeyR"
+        ) {
+
+            restartGame();
+
+        }
+
+    }
+);
+
+
+document.addEventListener(
+    "keyup",
+    event => {
+
+        keys[event.code] = false;
+
+    }
+);
+
+
+/* =========================================================
+   MOVIMENTO DOS JOGADORES
+========================================================= */
+
+function getPlayerInput(player, number) {
+
+    if (number === 1) {
+
+        if (keys["KeyW"]) {
+            player.desired = DIR.up;
+        }
+
+        if (keys["KeyS"]) {
+            player.desired = DIR.down;
+        }
+
+        if (keys["KeyA"]) {
+            player.desired = DIR.left;
+        }
+
+        if (keys["KeyD"]) {
+            player.desired = DIR.right;
+        }
+
+    } else {
+
+        if (keys["ArrowUp"]) {
+            player.desired = DIR.up;
+        }
+
+        if (keys["ArrowDown"]) {
+            player.desired = DIR.down;
+        }
+
+        if (keys["ArrowLeft"]) {
+            player.desired = DIR.left;
+        }
+
+        if (keys["ArrowRight"]) {
+            player.desired = DIR.right;
+        }
+
+    }
+
+}
+
+
+function movePlayer(player, dt) {
+
+    const desired = player.desired;
+
+    const canTurn =
+        canMoveTo(
+            player.x + desired.x * 4,
+            player.y + desired.y * 4,
+            player.radius
         );
 
 
-    this.shieldTimer = 180;
+    if (
+        canTurn &&
+        (
+            desired.x !== 0 ||
+            desired.y !== 0
+        )
+    ) {
 
-    particlesBurst(
-        this.x,
-        this.y,
-        "#b55cff",
-        20
-    );
+        player.dir = {
+            x: desired.x,
+            y: desired.y
+        };
 
-    tone(
-        500,
-        .12,
-        "triangle"
+    }
+
+
+    let speed = player.speed;
+
+
+    if (player.powerTimer > 0) {
+        speed *= 1.3;
+    }
+
+
+    const nx =
+        player.x +
+        player.dir.x *
+        speed *
+        dt;
+
+
+    const ny =
+        player.y +
+        player.dir.y *
+        speed *
+        dt;
+
+
+    if (
+        canMoveTo(
+            nx,
+            player.y,
+            player.radius
+        )
+    ) {
+
+        player.x = nx;
+
+    }
+
+
+    if (
+        canMoveTo(
+            player.x,
+            ny,
+            player.radius
+        )
+    ) {
+
+        player.y = ny;
+
+    }
+
+
+    player.x =
+        clamp(
+            player.x,
+            player.radius,
+            W - player.radius
+        );
+
+    player.y =
+        clamp(
+            player.y,
+            player.radius,
+            H - player.radius
+        );
+
+}
+
+
+/* =========================================================
+   DASH
+========================================================= */
+
+function dash(player) {
+
+    if (
+        player.dashTimer > 0 ||
+        !gameRunning ||
+        paused
+    ) {
+        return;
+    }
+
+
+    player.dashTimer =
+        DIFFICULTIES[difficulty].dashCooldown;
+
+
+    player.dashFlash = .25;
+
+
+    const distanceDash = 85;
+
+
+    for (
+        let i = 0;
+        i < 8;
+        i++
+    ) {
+
+        const nx =
+            player.x +
+            player.dir.x *
+            (distanceDash / 8);
+
+
+        const ny =
+            player.y +
+            player.dir.y *
+            (distanceDash / 8);
+
+
+        if (
+            canMoveTo(
+                nx,
+                ny,
+                player.radius
+            )
+        ) {
+
+            player.x = nx;
+            player.y = ny;
+
+        } else {
+
+            break;
+
+        }
+
+    }
+
+
+    spawnParticles(
+        player.x,
+        player.y,
+        player.color,
+        18
     );
 
 }
 
 
-draw() {
+/* =========================================================
+   PULSO
+========================================================= */
 
-    if (!this.alive) {
+function pulse(player) {
+
+    if (
+        player.pulseTimer > 0 ||
+        !gameRunning ||
+        paused
+    ) {
         return;
     }
 
+
+    player.pulseTimer =
+        DIFFICULTIES[difficulty].pulseCooldown;
+
+
+    const radius = 115;
+
+
+    spawnParticles(
+        player.x,
+        player.y,
+        "#a855f7",
+        30
+    );
+
+
+    for (const enemy of enemies) {
+
+        if (
+            distance(player, enemy) <
+            radius
+        ) {
+
+            enemy.stunned = 3;
+
+            enemy.x +=
+                player.x > enemy.x
+                    ? -15
+                    : 15;
+
+            enemy.y +=
+                player.y > enemy.y
+                    ? -15
+                    : 15;
+
+            player.score += 25;
+
+        }
+
+    }
+
+
+    screenShake = .18;
+
+}
+
+
+/* =========================================================
+   POWER UPS
+========================================================= */
+
+function collectPowerUp(player, power) {
+
+    power.active = false;
+
+    spawnParticles(
+        power.x,
+        power.y,
+        "#ffd84d",
+        20
+    );
+
+
+    switch (power.type) {
+
+        case "speed":
+
+            player.powerTimer = 7;
+
+            break;
+
+
+        case "shield":
+
+            player.invincible = 7;
+
+            break;
+
+
+        case "freeze":
+
+            for (const enemy of enemies) {
+                enemy.stunned = 4;
+            }
+
+            break;
+
+
+        case "bomb":
+
+            for (const enemy of enemies) {
+
+                if (
+                    distance(player, enemy) < 180
+                ) {
+
+                    enemy.stunned = 5;
+
+                    player.score += 50;
+
+                }
+
+            }
+
+            screenShake = .35;
+
+            break;
+
+    }
+
+}
+
+
+/* =========================================================
+   COLETA DE CRISTAIS
+========================================================= */
+
+function collectCrystals(player) {
+
+    for (const crystal of crystals) {
+
+        if (
+            crystal.active &&
+            distance(player, crystal) < 20
+        ) {
+
+            crystal.active = false;
+
+            collectedCrystals++;
+
+            player.score += crystal.value;
+
+            spawnParticles(
+                crystal.x,
+                crystal.y,
+                "#39d7ff",
+                10
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   COLISÃO COM POWER UPS
+========================================================= */
+
+function checkPowerUps(player) {
+
+    for (const power of powerUps) {
+
+        if (
+            power.active &&
+            distance(player, power) < 22
+        ) {
+
+            collectPowerUp(
+                player,
+                power
+            );
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   DANO DOS INIMIGOS
+========================================================= */
+
+function damagePlayer(player) {
+
+    if (
+        player.invincible > 0
+    ) {
+        return;
+    }
+
+
+    player.lives--;
+
+    player.invincible =
+        DIFFICULTIES[difficulty]
+            .enemyDamageCooldown;
+
+
+    spawnParticles(
+        player.x,
+        player.y,
+        "#ff465c",
+        25
+    );
+
+
+    screenShake = .25;
+
+
+    if (player.lives <= 0) {
+
+        player.lives = 0;
+
+        checkGameOver();
+
+        return;
+
+    }
+
+
+    const spawn =
+        player === player1
+            ? tileCenter(1, 1)
+            : tileCenter(COLS - 2, ROWS - 2);
+
+
+    player.x = spawn.x;
+    player.y = spawn.y;
+
+}
+
+
+/* =========================================================
+   INIMIGOS
+========================================================= */
+
+function updateEnemies(dt) {
+
+    for (const enemy of enemies) {
+
+        if (enemy.stunned > 0) {
+
+            enemy.stunned -= dt;
+
+            continue;
+
+        }
+
+
+        enemy.changeTimer -= dt;
+
+
+        const target =
+            distance(enemy, player1) <
+            distance(enemy, player2)
+                ? player1
+                : player2;
+
+
+        enemy.target = target;
+
+
+        let dx =
+            target.x - enemy.x;
+
+        let dy =
+            target.y - enemy.y;
+
+
+        const length =
+            Math.hypot(dx, dy) || 1;
+
+
+        dx /= length;
+        dy /= length;
+
+
+        let dirX = dx;
+        let dirY = dy;
+
+
+        /*
+            A cada certo tempo o inimigo
+            muda para uma direção aleatória.
+        */
+
+        if (
+            enemy.changeTimer <= 0
+        ) {
+
+            enemy.changeTimer =
+                random(.7, 1.8);
+
+
+            const choices = [
+                { x: 1, y: 0 },
+                { x: -1, y: 0 },
+                { x: 0, y: 1 },
+                { x: 0, y: -1 }
+            ];
+
+
+            const randomDir =
+                choices[
+                    Math.floor(
+                        Math.random() *
+                        choices.length
+                    )
+                ];
+
+
+            if (
+                Math.random() < .35
+            ) {
+
+                dirX = randomDir.x;
+                dirY = randomDir.y;
+
+            }
+
+        }
+
+
+        const nx =
+            enemy.x +
+            dirX *
+            enemy.speed *
+            60 *
+            dt;
+
+
+        const ny =
+            enemy.y +
+            dirY *
+            enemy.speed *
+            60 *
+            dt;
+
+
+        if (
+            canMoveTo(
+                nx,
+                enemy.y,
+                enemy.radius
+            )
+        ) {
+
+            enemy.x = nx;
+
+        } else {
+
+            enemy.changeTimer = 0;
+
+        }
+
+
+        if (
+            canMoveTo(
+                enemy.x,
+                ny,
+                enemy.radius
+            )
+        ) {
+
+            enemy.y = ny;
+
+        } else {
+
+            enemy.changeTimer = 0;
+
+        }
+
+
+        if (
+            distance(enemy, player1) <
+            23
+        ) {
+
+            damagePlayer(player1);
+
+        }
+
+
+        if (
+            distance(enemy, player2) <
+            23
+        ) {
+
+            damagePlayer(player2);
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   PORTAIS
+========================================================= */
+
+function updatePortals() {
+
+    for (const portal of portals) {
+
+        portal.phase += .03;
+
+
+        if (
+            distance(player1, portal) <
+            22
+        ) {
+
+            teleportPlayer(
+                player1,
+                portal
+            );
+
+        }
+
+
+        if (
+            distance(player2, portal) <
+            22
+        ) {
+
+            teleportPlayer(
+                player2,
+                portal
+            );
+
+        }
+
+    }
+
+}
+
+
+function teleportPlayer(player, portal) {
+
+    /*
+        Teleporte simples entre os dois portais.
+    */
+
+    const other =
+        portals.find(
+            p => p !== portal
+        );
+
+
+    if (!other) {
+        return;
+    }
+
+
+    player.x = other.x;
+    player.y = other.y;
+
+
+    spawnParticles(
+        other.x,
+        other.y,
+        other.color,
+        20
+    );
+
+}
+
+
+/* =========================================================
+   HABILIDADES
+========================================================= */
+
+function updateAbilities(player, dt) {
+
+    player.dashTimer =
+        Math.max(
+            0,
+            player.dashTimer - dt
+        );
+
+
+    player.pulseTimer =
+        Math.max(
+            0,
+            player.pulseTimer - dt
+        );
+
+
+    player.invincible =
+        Math.max(
+            0,
+            player.invincible - dt
+        );
+
+
+    player.powerTimer =
+        Math.max(
+            0,
+            player.powerTimer - dt
+        );
+
+
+    player.dashFlash =
+        Math.max(
+            0,
+            player.dashFlash - dt
+        );
+
+}
+
+
+/* =========================================================
+   UPDATE
+========================================================= */
+
+function update(dt) {
+
+    if (
+        !gameRunning ||
+        paused
+    ) {
+        return;
+    }
+
+
+    dt =
+        Math.min(
+            dt,
+            .033
+        );
+
+
+    getPlayerInput(
+        player1,
+        1
+    );
+
+
+    getPlayerInput(
+        player2,
+        2
+    );
+
+
+    movePlayer(
+        player1,
+        dt
+    );
+
+
+    movePlayer(
+        player2,
+        dt
+    );
+
+
+    updateAbilities(
+        player1,
+        dt
+    );
+
+
+    updateAbilities(
+        player2,
+        dt
+    );
+
+
+    collectCrystals(player1);
+    collectCrystals(player2);
+
+
+    checkPowerUps(player1);
+    checkPowerUps(player2);
+
+
+    updateEnemies(dt);
+
+    updatePortals();
+
+    updateParticles(dt);
+
+
+    screenShake =
+        Math.max(
+            0,
+            screenShake - dt
+        );
+
+
+    if (
+        collectedCrystals >=
+        totalCrystals
+    ) {
+
+        completeLevel();
+
+    }
+
+
+    updateHUD();
+
+}
+
+
+/* =========================================================
+   HUD
+========================================================= */
+
+function updateHUD() {
+
+    if (!player1 || !player2) {
+        return;
+    }
+
+
+    score1El.textContent =
+        player1.score;
+
+    score2El.textContent =
+        player2.score;
+
+
+    lives1El.textContent =
+        "❤️ ".repeat(
+            player1.lives
+        ) || "💀";
+
+
+    lives2El.textContent =
+        "❤️ ".repeat(
+            player2.lives
+        ) || "💀";
+
+
+    levelEl.textContent =
+        level;
+
+
+    difficultyLabel.textContent =
+        DIFFICULTIES[difficulty].label;
+
+
+    const percentage =
+        totalCrystals === 0
+            ? 0
+            :
+            (
+                collectedCrystals /
+                totalCrystals
+            ) * 100;
+
+
+    progressBar.style.width =
+        `${percentage}%`;
+
+
+    objectiveEl.textContent =
+        `${collectedCrystals}/${totalCrystals} cristais coletados`;
+
+}
+
+
+/* =========================================================
+   DESENHO DO MAPA
+========================================================= */
+
+function drawBackground() {
+
+    ctx.fillStyle = "#060916";
+
+    ctx.fillRect(
+        0,
+        0,
+        W,
+        H
+    );
+
+
+    /*
+        Pequena grade decorativa.
+    */
+
+    ctx.strokeStyle =
+        "rgba(255,255,255,.025)";
+
+    ctx.lineWidth = 1;
+
+
+    for (
+        let x = 0;
+        x < W;
+        x += TILE
+    ) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, H);
+
+        ctx.stroke();
+
+    }
+
+
+    for (
+        let y = 0;
+        y < H;
+        y += TILE
+    ) {
+
+        ctx.beginPath();
+
+        ctx.moveTo(0, y);
+        ctx.lineTo(W, y);
+
+        ctx.stroke();
+
+    }
+
+}
+
+
+function drawMap() {
+
+    const map =
+        MAPS[level - 1];
+
+
+    for (
+        let row = 0;
+        row < ROWS;
+        row++
+    ) {
+
+        for (
+            let col = 0;
+            col < COLS;
+            col++
+        ) {
+
+            if (
+                map[row][col] === "1"
+            ) {
+
+                const x =
+                    col * TILE;
+
+                const y =
+                    row * TILE;
+
+
+                ctx.fillStyle =
+                    "#111a36";
+
+
+                ctx.fillRect(
+                    x + 1,
+                    y + 1,
+                    TILE - 2,
+                    TILE - 2
+                );
+
+
+                ctx.strokeStyle =
+                    "rgba(36,183,255,.16)";
+
+
+                ctx.strokeRect(
+                    x + 3,
+                    y + 3,
+                    TILE - 6,
+                    TILE - 6
+                );
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* =========================================================
+   DESENHO DOS CRISTAIS
+========================================================= */
+
+function drawCrystals(time) {
+
+    for (const crystal of crystals) {
+
+        if (!crystal.active) {
+            continue;
+        }
+
+
+        crystal.pulse += .05;
+
+
+        const scale =
+            1 +
+            Math.sin(
+                time * .006 +
+                crystal.pulse
+            ) * .15;
+
+
+        ctx.save();
+
+        ctx.translate(
+            crystal.x,
+            crystal.y
+        );
+
+        ctx.scale(
+            scale,
+            scale
+        );
+
+
+        ctx.rotate(
+            Math.sin(
+                time * .002 +
+                crystal.pulse
+            )
+        );
+
+
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#39d7ff";
+
+        ctx.fillStyle = "#39d7ff";
+
+        ctx.beginPath();
+
+        ctx.moveTo(0, -8);
+        ctx.lineTo(6, 0);
+        ctx.lineTo(0, 8);
+        ctx.lineTo(-6, 0);
+
+        ctx.closePath();
+
+        ctx.fill();
+
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   DESENHO DOS POWER UPS
+========================================================= */
+
+function drawPowerUps(time) {
+
+    const colors = {
+
+        speed: "#39d7ff",
+        shield: "#32e875",
+        freeze: "#a855f7",
+        bomb: "#ff465c"
+
+    };
+
+
+    const symbols = {
+
+        speed: "⚡",
+        shield: "◆",
+        freeze: "❄",
+        bomb: "✹"
+
+    };
+
+
+    for (const power of powerUps) {
+
+        if (!power.active) {
+            continue;
+        }
+
+
+        power.rotation += .02;
+
+
+        ctx.save();
+
+        ctx.translate(
+            power.x,
+            power.y
+        );
+
+
+        ctx.rotate(
+            power.rotation
+        );
+
+
+        ctx.shadowBlur = 18;
+        ctx.shadowColor =
+            colors[power.type];
+
+
+        ctx.fillStyle =
+            colors[power.type];
+
+
+        ctx.beginPath();
+
+        ctx.roundRect(
+            -12,
+            -12,
+            24,
+            24,
+            7
+        );
+
+        ctx.fill();
+
+
+        ctx.restore();
+
+
+        ctx.save();
+
+        ctx.translate(
+            power.x,
+            power.y
+        );
+
+
+        ctx.fillStyle = "#08101f";
+
+        ctx.font = "bold 13px Arial";
+
+        ctx.textAlign = "center";
+
+        ctx.textBaseline = "middle";
+
+        ctx.fillText(
+            symbols[power.type],
+            0,
+            1
+        );
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   DESENHO DOS PORTAIS
+========================================================= */
+
+function drawPortals() {
+
+    for (const portal of portals) {
+
+        const pulse =
+            Math.sin(
+                portal.phase
+            ) * 4;
+
+
+        ctx.save();
+
+        ctx.translate(
+            portal.x,
+            portal.y
+        );
+
+
+        ctx.shadowBlur = 25;
+
+        ctx.shadowColor =
+            portal.color;
+
+
+        ctx.strokeStyle =
+            portal.color;
+
+        ctx.lineWidth = 4;
+
+
+        ctx.beginPath();
+
+        ctx.arc(
+            0,
+            0,
+            portal.radius + pulse,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.stroke();
+
+
+        ctx.lineWidth = 1;
+
+        ctx.beginPath();
+
+        ctx.arc(
+            0,
+            0,
+            7,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.stroke();
+
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   DESENHO DOS JOGADORES
+========================================================= */
+
+function drawPlayer(player) {
 
     ctx.save();
 
 
     /*
-        Shield.
+        Efeito de invulnerabilidade.
     */
 
     if (
-        this.shieldTimer > 0
-    ) {
-
-        const pulse =
-            Math.sin(
-                frame * .15
-            ) * 2;
-
-        ctx.strokeStyle =
-            "#b55cff";
-
-        ctx.shadowColor =
-            "#b55cff";
-
-        ctx.shadowBlur =
-            20;
-
-        ctx.lineWidth = 3;
-
-        ctx.beginPath();
-
-        ctx.arc(
-            this.x,
-            this.y,
-            17 + pulse,
-            0,
-            Math.PI * 2
-        );
-
-        ctx.stroke();
-
-    }
-
-
-    /*
-        Pulse.
-    */
-
-    if (
-        this.pulseEffect > 0
-    ) {
-
-        const progress =
-            25 -
-            this.pulseEffect;
-
-        ctx.strokeStyle =
-            "rgba(33,229,255,.7)";
-
-        ctx.lineWidth = 3;
-
-        ctx.beginPath();
-
-        ctx.arc(
-            this.x,
-            this.y,
-            20 +
-            progress * 4,
-            0,
-            Math.PI * 2
-        );
-
-        ctx.stroke();
-
-        this.pulseEffect--;
-
-    }
-
-
-    /*
-        Pisca quando invencível.
-    */
-
-    if (
-        this.invincible > 0 &&
+        player.invincible > 0 &&
         Math.floor(
-            this.invincible / 5
+            player.invincible * 10
         ) % 2 === 0
     ) {
 
@@ -1689,1028 +2036,38 @@ draw() {
     }
 
 
+    if (
+        player.powerTimer > 0
+    ) {
+
+        ctx.shadowBlur = 25;
+
+        ctx.shadowColor =
+            "#39d7ff";
+
+    } else {
+
+        ctx.shadowBlur = 16;
+
+        ctx.shadowColor =
+            player.color;
+
+    }
+
+
     ctx.fillStyle =
-        this.color;
+        player.color;
 
-    ctx.shadowColor =
-        this.color;
-
-    ctx.shadowBlur = 16;
 
     ctx.beginPath();
 
     ctx.arc(
-        this.x,
-        this.y,
-        this.radius,
+        player.x,
+        player.y,
+        player.radius,
         0,
         Math.PI * 2
     );
-
-    ctx.fill();
-
-
-    /*
-        Olho.
-    */
-
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle =
-        "#ffffff";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        this.x +
-        this.dirX * 4,
-
-        this.y +
-        this.dirY * 4,
-
-        3,
-
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    ctx.restore();
-
-}
-
-}
-
-/* ============================================================
-JOGADORES
-============================================================ */
-
-const player1 =
-new Player({
-
-    name:
-        "PLAYER 1",
-
-    color:
-        "#ff3b67",
-
-    x:
-        TILE * 2.5,
-
-    y:
-        TILE * 2.5,
-
-    controls: {
-
-        up:
-            "KeyW",
-
-        down:
-            "KeyS",
-
-        left:
-            "KeyA",
-
-        right:
-            "KeyD",
-
-        dash:
-            "ShiftLeft",
-
-        pulse:
-            "Space",
-
-        shield:
-            "KeyQ"
-
-    }
-
-});
-
-const player2 =
-new Player({
-
-    name:
-        "PLAYER 2",
-
-    color:
-        "#3187ff",
-
-    x:
-        TILE * 25.5,
-
-    y:
-        TILE * 17.5,
-
-    controls: {
-
-        up:
-            "ArrowUp",
-
-        down:
-            "ArrowDown",
-
-        left:
-            "ArrowLeft",
-
-        right:
-            "ArrowRight",
-
-        dash:
-            "Enter",
-
-        pulse:
-            "Slash",
-
-        shield:
-            "Period"
-
-    }
-
-});
-
-/* ============================================================
-ITENS
-============================================================ */
-
-function collectItems(
-player
-) {
-
-pellets.forEach(
-    pellet => {
-
-        if (
-            pellet.collected
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            distance(
-                player,
-                pellet
-            ) < 14
-        ) {
-
-            pellet.collected =
-                true;
-
-            remainingItems--;
-
-            combo++;
-
-            comboTimer = 150;
-
-            const multiplier =
-                Math.min(
-                    5,
-                    1 +
-                    Math.floor(
-                        combo / 10
-                    )
-                );
-
-            const points =
-                10 *
-                multiplier;
-
-            player.score +=
-                points;
-
-            floatingTexts.push({
-
-                x:
-                    pellet.x,
-
-                y:
-                    pellet.y - 8,
-
-                text:
-                    `+${points}`,
-
-                color:
-                    "#ffd447",
-
-                life: 35
-
-            });
-
-            particlesBurst(
-                pellet.x,
-                pellet.y,
-                "#ffd447",
-                5
-            );
-
-            tone(
-                520 +
-                combo * 5,
-                .035,
-                "square"
-            );
-
-        }
-
-    }
-);
-
-
-crystals.forEach(
-    crystal => {
-
-        if (
-            crystal.collected
-        ) {
-
-            return;
-
-        }
-
-
-        if (
-            distance(
-                player,
-                crystal
-            ) < 17
-        ) {
-
-            crystal.collected =
-                true;
-
-            remainingItems--;
-
-            player.score +=
-                50;
-
-            player.powerTimer =
-                420;
-
-            floatingTexts.push({
-
-                x:
-                    crystal.x,
-
-                y:
-                    crystal.y - 10,
-
-                text:
-                    "+50 POWER",
-
-                color:
-                    "#21e5ff",
-
-                life: 55
-
-            });
-
-            particlesBurst(
-                crystal.x,
-                crystal.y,
-                "#21e5ff",
-                24
-            );
-
-            tone(
-                900,
-                .12,
-                "sine"
-            );
-
-        }
-
-    }
-);
-
-}
-
-function usePortal(
-player
-) {
-
-if (
-    player.portalCooldown > 0
-) {
-
-    return;
-
-}
-
-
-for (
-    let i = 0;
-    i < portals.length;
-    i++
-) {
-
-    const portal =
-        portals[i];
-
-    if (
-        distance(
-            player,
-            portal
-        ) < 14
-    ) {
-
-        const other =
-            portals[
-                i === 0
-                    ? 1
-                    : 0
-            ];
-
-        player.x =
-            other.x;
-
-        player.y =
-            other.y;
-
-        player.portalCooldown =
-            45;
-
-        player.score +=
-            15;
-
-        particlesBurst(
-            other.x,
-            other.y,
-            "#b55cff",
-            25
-        );
-
-        tone(
-            450,
-            .09,
-            "triangle"
-        );
-
-        break;
-
-    }
-
-}
-
-}
-
-/* ============================================================
-INIMIGOS
-============================================================ */
-
-class Enemy {
-
-constructor(
-    x,
-    y,
-    color,
-    type,
-    speed
-) {
-
-    this.x = x;
-    this.y = y;
-
-    this.spawnX = x;
-    this.spawnY = y;
-
-    this.color = color;
-
-    this.type = type;
-
-    this.radius = 10;
-
-    this.speed = speed;
-
-    this.dirX = 1;
-    this.dirY = 0;
-
-    this.changeTimer = 0;
-
-    this.stunTimer = 0;
-
-    this.knockX = 0;
-    this.knockY = 0;
-
-}
-
-
-update() {
-
-    if (
-        this.stunTimer > 0
-    ) {
-
-        this.stunTimer--;
-
-        /*
-            Pequeno deslocamento
-            de knockback.
-        */
-
-        const length =
-            Math.hypot(
-                this.knockX,
-                this.knockY
-            ) || 1;
-
-        const nx =
-            this.knockX /
-            length;
-
-        const ny =
-            this.knockY /
-            length;
-
-        const kx =
-            this.x +
-            nx * 1.7;
-
-        const ky =
-            this.y +
-            ny * 1.7;
-
-        if (
-            canMove(
-                kx,
-                ky,
-                this.radius
-            )
-        ) {
-
-            this.x = kx;
-            this.y = ky;
-
-        }
-
-        return;
-
-    }
-
-
-    const target =
-        this.findTarget();
-
-
-    if (!target) {
-        return;
-    }
-
-
-    if (
-        this.type ===
-        "random"
-    ) {
-
-        this.randomMove();
-
-    } else if (
-        this.type ===
-        "ambush"
-    ) {
-
-        this.chase({
-
-            x:
-                target.x +
-                target.dirX *
-                TILE * 3,
-
-            y:
-                target.y +
-                target.dirY *
-                TILE * 3
-
-        });
-
-    } else if (
-        this.type ===
-        "hunter"
-    ) {
-
-        this.chase(
-            target
-        );
-
-    } else {
-
-        this.smartChase(
-            target
-        );
-
-    }
-
-
-    const nx =
-        this.x +
-        this.dirX *
-        this.speed;
-
-    const ny =
-        this.y +
-        this.dirY *
-        this.speed;
-
-
-    if (
-        canMove(
-            nx,
-            ny,
-            this.radius
-        )
-    ) {
-
-        this.x = nx;
-        this.y = ny;
-
-    } else {
-
-        this.chooseDirection();
-
-    }
-
-
-    this.collidePlayers();
-
-}
-
-
-findTarget() {
-
-    const candidates =
-        [
-            player1,
-            player2
-        ].filter(
-            player =>
-                player.alive
-        );
-
-
-    if (
-        candidates.length === 0
-    ) {
-
-        return null;
-
-    }
-
-
-    return candidates.sort(
-        (a, b) =>
-            distance(
-                this,
-                a
-            ) -
-            distance(
-                this,
-                b
-            )
-    )[0];
-
-}
-
-
-chase(target) {
-
-    const dx =
-        target.x -
-        this.x;
-
-    const dy =
-        target.y -
-        this.y;
-
-
-    const options = [];
-
-
-    if (
-        Math.abs(dx) >
-        Math.abs(dy)
-    ) {
-
-        options.push(
-            {
-                x: Math.sign(dx),
-                y: 0
-            }
-        );
-
-        options.push(
-            {
-                x: 0,
-                y: Math.sign(dy)
-            }
-        );
-
-    } else {
-
-        options.push(
-            {
-                x: 0,
-                y: Math.sign(dy)
-            }
-        );
-
-        options.push(
-            {
-                x: Math.sign(dx),
-                y: 0
-            }
-        );
-
-    }
-
-
-    options.push(
-        {
-            x: -this.dirX,
-            y: -this.dirY
-        }
-    );
-
-
-    for (
-        const direction of options
-    ) {
-
-        if (
-            this.canDirection(
-                direction
-            )
-        ) {
-
-            this.dirX =
-                direction.x;
-
-            this.dirY =
-                direction.y;
-
-            return;
-
-        }
-
-    }
-
-
-    this.chooseDirection();
-
-}
-
-
-smartChase(target) {
-
-    /*
-        O inimigo tenta prever
-        o movimento do jogador.
-    */
-
-    const predicted = {
-
-        x:
-            target.x +
-            target.dirX *
-            TILE * 2,
-
-        y:
-            target.y +
-            target.dirY *
-            TILE * 2
-
-    };
-
-
-    this.chase(
-        predicted
-    );
-
-}
-
-
-randomMove() {
-
-    this.changeTimer--;
-
-    if (
-        this.changeTimer > 0 &&
-        this.canDirection({
-            x: this.dirX,
-            y: this.dirY
-        })
-    ) {
-
-        return;
-
-    }
-
-    this.chooseDirection();
-
-}
-
-
-canDirection(
-    direction
-) {
-
-    return canMove(
-
-        this.x +
-        direction.x *
-        12,
-
-        this.y +
-        direction.y *
-        12,
-
-        this.radius
-
-    );
-
-}
-
-
-chooseDirection() {
-
-    const options = [
-
-        {
-            x: 1,
-            y: 0
-        },
-
-        {
-            x: -1,
-            y: 0
-        },
-
-        {
-            x: 0,
-            y: 1
-        },
-
-        {
-            x: 0,
-            y: -1
-        }
-
-    ].filter(
-        direction =>
-            this.canDirection(
-                direction
-            )
-    );
-
-
-    if (
-        options.length === 0
-    ) {
-
-        return;
-
-    }
-
-
-    const direction =
-        options[
-            Math.floor(
-                Math.random() *
-                options.length
-            )
-        ];
-
-
-    this.dirX =
-        direction.x;
-
-    this.dirY =
-        direction.y;
-
-    this.changeTimer =
-        30 +
-        Math.random() * 80;
-
-}
-
-
-collidePlayers() {
-
-    const players =
-        [
-            player1,
-            player2
-        ];
-
-
-    for (
-        const player of players
-    ) {
-
-        if (
-            !player.alive
-        ) {
-
-            continue;
-
-        }
-
-
-        if (
-            distance(
-                this,
-                player
-            ) <
-            this.radius +
-            player.radius
-        ) {
-
-            if (
-                player.powerTimer > 0
-            ) {
-
-                defeatEnemy(
-                    this,
-                    player
-                );
-
-            } else if (
-                player.shieldTimer > 0
-            ) {
-
-                /*
-                    Shield repele
-                    o inimigo.
-                */
-
-                this.stunTimer =
-                    50;
-
-                player.score +=
-                    20;
-
-                particlesBurst(
-                    player.x,
-                    player.y,
-                    "#b55cff",
-                    15
-                );
-
-            } else {
-
-                hurtPlayer(
-                    player
-                );
-
-            }
-
-        }
-
-    }
-
-}
-
-
-respawn() {
-
-    const possible = [];
-
-
-    for (
-        let row = 2;
-        row < ROWS - 2;
-        row++
-    ) {
-
-        for (
-            let col = 2;
-            col < COLS - 2;
-            col++
-        ) {
-
-            if (
-                !isWall(
-                    col,
-                    row
-                )
-            ) {
-
-                possible.push(
-                    cell(
-                        col,
-                        row
-                    )
-                );
-
-            }
-
-        }
-
-    }
-
-
-    if (
-        possible.length === 0
-    ) {
-
-        return;
-
-    }
-
-
-    const position =
-        possible[
-            Math.floor(
-                Math.random() *
-                possible.length
-            )
-        ];
-
-
-    this.x =
-        position.x;
-
-    this.y =
-        position.y;
-
-    this.chooseDirection();
-
-}
-
-
-draw() {
-
-    ctx.save();
-
-    let color =
-        this.color;
-
-
-    if (
-        this.stunTimer > 0
-    ) {
-
-        color =
-            "#ffffff";
-
-    }
-
-
-    ctx.fillStyle =
-        color;
-
-    ctx.shadowColor =
-        color;
-
-    ctx.shadowBlur = 14;
-
-
-    ctx.beginPath();
-
-    ctx.arc(
-        this.x,
-        this.y,
-        this.radius,
-        Math.PI,
-        0
-    );
-
-    ctx.lineTo(
-        this.x +
-        this.radius,
-
-        this.y +
-        this.radius
-    );
-
-    ctx.lineTo(
-        this.x + 5,
-        this.y + 7
-    );
-
-    ctx.lineTo(
-        this.x,
-        this.y +
-        this.radius
-    );
-
-    ctx.lineTo(
-        this.x - 5,
-        this.y + 7
-    );
-
-    ctx.lineTo(
-        this.x -
-        this.radius,
-
-        this.y +
-        this.radius
-    );
-
-    ctx.closePath();
 
     ctx.fill();
 
@@ -2721,57 +2078,30 @@ draw() {
 
     ctx.shadowBlur = 0;
 
-    ctx.fillStyle =
-        "#ffffff";
+    ctx.fillStyle = "#07101f";
+
+
+    const eyeX =
+        player.dir.x * 3;
+
+    const eyeY =
+        player.dir.y * 3;
+
 
     ctx.beginPath();
 
     ctx.arc(
-        this.x - 4,
-        this.y - 2,
-        3,
+        player.x - 4 + eyeX,
+        player.y - 4 + eyeY,
+        2,
         0,
         Math.PI * 2
     );
 
     ctx.arc(
-        this.x + 4,
-        this.y - 2,
-        3,
-        0,
-        Math.PI * 2
-    );
-
-    ctx.fill();
-
-
-    ctx.fillStyle =
-        "#101526";
-
-    ctx.beginPath();
-
-    ctx.arc(
-        this.x - 4 +
-        this.dirX * 2,
-
-        this.y - 2 +
-        this.dirY * 2,
-
-        1.5,
-
-        0,
-        Math.PI * 2
-    );
-
-    ctx.arc(
-        this.x + 4 +
-        this.dirX * 2,
-
-        this.y - 2 +
-        this.dirY * 2,
-
-        1.5,
-
+        player.x + 4 + eyeX,
+        player.y - 4 + eyeY,
+        2,
         0,
         Math.PI * 2
     );
@@ -2779,1424 +2109,1287 @@ draw() {
     ctx.fill();
 
 
-    ctx.restore();
-
-}
-
-}
-
-/* ============================================================
-CRIAR INIMIGOS
-============================================================ */
-
-function createEnemies() {
-
-enemies = [];
-
-
-const phase =
-    PHASES[
-        phaseIndex
-    ];
-
-
-const baseSpeed =
-    phase.enemySpeed *
-    difficulty.enemyMultiplier;
-
-
-const colors = [
-
-    "#ff416c",
-
-    "#b55cff",
-
-    "#39ee82",
-
-    "#ff9d1c",
-
-    "#21e5ff",
-
-    "#ff4fc3",
-
-    "#9dff4f"
-
-];
-
-
-const types = [
-
-    "hunter",
-
-    "ambush",
-
-    "random",
-
-    "smart"
-
-];
-
-
-/*
-    Posições ao redor
-    do centro.
-*/
-
-const positions = [
-
-    [12, 8],
-
-    [15, 8],
-
-    [12, 11],
-
-    [15, 11],
-
-    [10, 9],
-
-    [17, 9],
-
-    [14, 12]
-
-];
-
-
-for (
-    let i = 0;
-    i < phase.enemyCount;
-    i++
-) {
-
-    const position =
-        positions[
-            i
-        ];
-
-
-    const enemy =
-        new Enemy(
-
-            TILE *
-            (position[0] + .5),
-
-            TILE *
-            (position[1] + .5),
-
-            colors[
-                i %
-                colors.length
-            ],
-
-            types[
-                i %
-                types.length
-            ],
-
-            baseSpeed +
-            i * .025
-
-        );
-
-
-    enemy.chooseDirection();
-
-    enemies.push(
-        enemy
-    );
-
-}
-
-}
-
-/* ============================================================
-DERROTAR INIMIGO
-============================================================ */
-
-function defeatEnemy(
-enemy,
-player
-) {
-
-combo++;
-
-comboTimer = 180;
-
-
-const multiplier =
-    Math.min(
-        5,
-        1 +
-        Math.floor(
-            combo / 5
-        )
-    );
-
-
-const points =
-    100 *
-    multiplier;
-
-
-player.score +=
-    points;
-
-
-floatingTexts.push({
-
-    x:
-        enemy.x,
-
-    y:
-        enemy.y - 10,
-
-    text:
-        `+${points}`,
-
-    color:
-        "#21e5ff",
-
-    life: 55
-
-});
-
-
-particlesBurst(
-    enemy.x,
-    enemy.y,
-    enemy.color,
-    30
-);
-
-
-tone(
-    220 +
-    multiplier * 80,
-    .1,
-    "sawtooth"
-);
-
-
-enemy.respawn();
-
-}
-
-/* ============================================================
-DANO
-============================================================ */
-
-function hurtPlayer(
-player
-) {
-
-if (
-    player.invincible > 0
-) {
-
-    return;
-
-}
-
-
-if (
-    player.shieldTimer > 0
-) {
-
-    return;
-
-}
-
-
-player.lives--;
-
-combo = 0;
-
-comboTimer = 0;
-
-
-particlesBurst(
-    player.x,
-    player.y,
-    player.color,
-    30
-);
-
-
-tone(
-    120,
-    .15,
-    "sawtooth"
-);
-
-
-if (
-    player.lives <= 0
-) {
-
-    player.alive =
-        false;
-
-} else {
-
-    player.resetPosition();
-
-}
-
-
-if (
-    !player1.alive &&
-    !player2.alive
-) {
-
-    endGame();
-
-}
-
-}
-
-/* ============================================================
-DESENHO DO MAPA
-============================================================ */
-
-function drawBackground() {
-
-const phase =
-    PHASES[
-        phaseIndex
-    ];
-
-
-const gradient =
-    ctx.createLinearGradient(
-        0,
-        0,
-        0,
-        HEIGHT
-    );
-
-
-gradient.addColorStop(
-    0,
-    "#030819"
-);
-
-gradient.addColorStop(
-    .5,
-    "#050b1b"
-);
-
-gradient.addColorStop(
-    1,
-    "#010208"
-);
-
-
-ctx.fillStyle =
-    gradient;
-
-ctx.fillRect(
-    0,
-    0,
-    WIDTH,
-    HEIGHT
-);
-
-
-/*
-    Linhas de energia.
-*/
-
-ctx.strokeStyle =
-    phase.color +
-    "12";
-
-ctx.lineWidth = 1;
-
-
-for (
-    let x = 0;
-    x < WIDTH;
-    x += TILE
-) {
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        x,
-        0
-    );
-
-    ctx.lineTo(
-        x,
-        HEIGHT
-    );
-
-    ctx.stroke();
-
-}
-
-
-for (
-    let y = 0;
-    y < HEIGHT;
-    y += TILE
-) {
-
-    ctx.beginPath();
-
-    ctx.moveTo(
-        0,
-        y
-    );
-
-    ctx.lineTo(
-        WIDTH,
-        y
-    );
-
-    ctx.stroke();
-
-}
-
-}
-
-function drawMap() {
-
-const phase =
-    PHASES[
-        phaseIndex
-    ];
-
-
-for (
-    let row = 0;
-    row < ROWS;
-    row++
-) {
-
-    for (
-        let col = 0;
-        col < COLS;
-        col++
+    /*
+        Escudo.
+    */
+
+    if (
+        player.invincible > 0
     ) {
 
-        if (
-            !isWall(
-                col,
-                row
-            )
-        ) {
-
-            continue;
-
-        }
-
-
-        const x =
-            col * TILE;
-
-        const y =
-            row * TILE;
-
-
-        ctx.fillStyle =
-            "#08142e";
-
-        ctx.fillRect(
-            x,
-            y,
-            TILE,
-            TILE
-        );
-
-
         ctx.strokeStyle =
-            phase.color +
-            "80";
+            "#32e875";
 
-        ctx.lineWidth = 1;
-
-        ctx.strokeRect(
-            x + .5,
-            y + .5,
-            TILE - 1,
-            TILE - 1
-        );
-
-
-        ctx.fillStyle =
-            phase.color +
-            "10";
-
-        ctx.fillRect(
-            x + 4,
-            y + 4,
-            TILE - 8,
-            3
-        );
-
-    }
-
-}
-
-
-/*
-    Portais.
-*/
-
-portals.forEach(
-    (portal, index) => {
-
-        const pulse =
-            Math.sin(
-                frame * .1 +
-                index
-            ) * 3;
-
-
-        ctx.save();
-
-        ctx.strokeStyle =
-            "#b55cff";
-
-        ctx.shadowColor =
-            "#b55cff";
-
-        ctx.shadowBlur =
-            20;
-
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 2;
 
         ctx.beginPath();
 
         ctx.arc(
-            portal.x,
-            portal.y,
-            9 + pulse,
+            player.x,
+            player.y,
+            20,
             0,
             Math.PI * 2
         );
 
         ctx.stroke();
 
-        ctx.restore();
+    }
+
+
+    /*
+        Efeito do dash.
+    */
+
+    if (
+        player.dashFlash > 0
+    ) {
+
+        ctx.strokeStyle =
+            player.color;
+
+        ctx.lineWidth = 5;
+
+        ctx.globalAlpha = .5;
+
+        ctx.beginPath();
+
+        ctx.moveTo(
+            player.x -
+            player.dir.x * 35,
+            player.y -
+            player.dir.y * 35
+        );
+
+        ctx.lineTo(
+            player.x,
+            player.y
+        );
+
+        ctx.stroke();
 
     }
-);
+
+
+    ctx.restore();
 
 }
 
-/* ============================================================
-DESENHAR ITENS
-============================================================ */
 
-function drawItems() {
+/* =========================================================
+   DESENHO DOS INIMIGOS
+========================================================= */
 
-pellets.forEach(
-    pellet => {
+function drawEnemies() {
+
+    for (const enemy of enemies) {
+
+        ctx.save();
+
 
         if (
-            pellet.collected
+            enemy.stunned > 0
         ) {
 
-            return;
+            ctx.globalAlpha = .65;
+
+            ctx.shadowColor =
+                "#a855f7";
+
+        } else {
+
+            ctx.shadowColor =
+                enemy.color;
 
         }
 
 
-        const pulse =
-            Math.sin(
-                frame * .12 +
-                pellet.phase
-            ) * 1.2;
-
+        ctx.shadowBlur = 16;
 
         ctx.fillStyle =
-            "#ffd447";
+            enemy.stunned > 0
+                ? "#a855f7"
+                : enemy.color;
 
-        ctx.shadowColor =
-            "#ffd447";
-
-        ctx.shadowBlur = 8;
 
         ctx.beginPath();
 
         ctx.arc(
-            pellet.x,
-            pellet.y,
-            3.3 + pulse,
+            enemy.x,
+            enemy.y,
+            enemy.radius,
             0,
             Math.PI * 2
         );
 
         ctx.fill();
 
+
+        /*
+            Olhos.
+        */
+
         ctx.shadowBlur = 0;
 
-    }
-);
-
-
-crystals.forEach(
-    crystal => {
-
-        if (
-            crystal.collected
-        ) {
-
-            return;
-
-        }
-
-
-        const pulse =
-            Math.sin(
-                frame * .1 +
-                crystal.phase
-            ) * 2;
-
-
-        ctx.save();
-
-        ctx.translate(
-            crystal.x,
-            crystal.y
-        );
-
-        ctx.rotate(
-            frame * .02
-        );
-
-
-        ctx.fillStyle =
-            "#21e5ff";
-
-        ctx.shadowColor =
-            "#21e5ff";
-
-        ctx.shadowBlur =
-            20;
+        ctx.fillStyle = "#fff";
 
 
         ctx.beginPath();
 
-        ctx.moveTo(
+        ctx.arc(
+            enemy.x - 5,
+            enemy.y - 3,
+            4,
             0,
-            -10 - pulse
+            Math.PI * 2
         );
 
-        ctx.lineTo(
-            8 + pulse,
-            0
-        );
-
-        ctx.lineTo(
+        ctx.arc(
+            enemy.x + 5,
+            enemy.y - 3,
+            4,
             0,
-            10 + pulse
+            Math.PI * 2
         );
-
-        ctx.lineTo(
-            -8 - pulse,
-            0
-        );
-
-        ctx.closePath();
 
         ctx.fill();
+
+
+        ctx.fillStyle = "#09101f";
+
+
+        ctx.beginPath();
+
+        ctx.arc(
+            enemy.x - 5,
+            enemy.y - 3,
+            2,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.arc(
+            enemy.x + 5,
+            enemy.y - 3,
+            2,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+
 
         ctx.restore();
 
     }
-);
-
-}
-
-/* ============================================================
-HUD
-============================================================ */
-
-function formatScore(
-value
-) {
-
-return String(
-    Math.floor(value)
-).padStart(
-    6,
-    "0"
-);
-
-}
-
-function cooldownText(
-value
-) {
-
-if (
-    value <= 0
-) {
-
-    return "PRONTO";
 
 }
 
 
-return (
-    Math.ceil(
-        value / 60
-    ) +
-    "s"
-);
+/* =========================================================
+   PARTÍCULAS
+========================================================= */
 
-}
+function drawParticles() {
 
-function updateHUD() {
+    for (const p of particles) {
 
-score1.textContent =
-    formatScore(
-        player1.score
-    );
+        const alpha =
+            clamp(
+                p.life / p.maxLife,
+                0,
+                1
+            );
 
-score2.textContent =
-    formatScore(
-        player2.score
-    );
 
+        ctx.globalAlpha = alpha;
 
-lives1.textContent =
-    player1.lives > 0
-        ? "♥ ".repeat(
-            player1.lives
-        )
-        : "SEM VIDAS";
+        ctx.fillStyle = p.color;
 
 
-lives2.textContent =
-    player2.lives > 0
-        ? "♥ ".repeat(
-            player2.lives
-        )
-        : "SEM VIDAS";
+        ctx.beginPath();
 
-
-dash1.textContent =
-    cooldownText(
-        player1.dashCooldown
-    );
-
-pulse1.textContent =
-    cooldownText(
-        player1.pulseCooldown
-    );
-
-shield1.textContent =
-    cooldownText(
-        player1.shieldCooldown
-    );
-
-
-dash2.textContent =
-    cooldownText(
-        player2.dashCooldown
-    );
-
-pulse2.textContent =
-    cooldownText(
-        player2.pulseCooldown
-    );
-
-shield2.textContent =
-    cooldownText(
-        player2.shieldCooldown
-    );
-
-
-phaseLabel.textContent =
-    `FASE ${phaseIndex + 1} / ${PHASES.length}`;
-
-phaseName.textContent =
-    PHASES[
-        phaseIndex
-    ].name;
-
-
-const progress =
-    totalItems > 0
-        ? (
-            (
-                totalItems -
-                remainingItems
-            ) /
-            totalItems
-        ) * 100
-        : 0;
-
-
-progressBar.style.width =
-    `${progress}%`;
-
-
-if (
-    player1.powerTimer > 0
-) {
-
-    statusText.textContent =
-        "PLAYER 1 ESTÁ ENERGIZADO!";
-
-} else if (
-    player2.powerTimer > 0
-) {
-
-    statusText.textContent =
-        "PLAYER 2 ESTÁ ENERGIZADO!";
-
-} else if (
-    combo >= 5
-) {
-
-    statusText.textContent =
-        `COMBO x${Math.min(
-            5,
-            1 +
-            Math.floor(
-                combo / 5
-            )
-        )}`;
-
-} else {
-
-    statusText.textContent =
-        `${remainingItems} ITENS RESTANTES`;
-
-}
-
-}
-
-/* ============================================================
-FIM DA FASE
-============================================================ */
-
-function finishPhase() {
-
-if (
-    phaseFinished ||
-    !gameRunning
-) {
-
-    return;
-
-}
-
-
-phaseFinished =
-    true;
-
-gameRunning =
-    false;
-
-
-player1.score +=
-    250 * (phaseIndex + 1);
-
-player2.score +=
-    250 * (phaseIndex + 1);
-
-
-/*
-    Última fase.
-*/
-
-if (
-    phaseIndex ===
-    PHASES.length - 1
-) {
-
-    showFinalVictory();
-
-    return;
-
-}
-
-
-showPhaseResult();
-
-}
-
-function showPhaseResult() {
-
-resultScreen.classList.remove(
-    "hidden"
-);
-
-
-resultIcon.textContent =
-    "✓";
-
-resultTitle.textContent =
-    `FASE ${phaseIndex + 1} CONCLUÍDA`;
-
-resultText.textContent =
-    `${PHASES[
-        phaseIndex
-    ].name} foi concluída.`;
-
-resultScore1.textContent =
-    formatScore(
-        player1.score
-    );
-
-resultScore2.textContent =
-    formatScore(
-        player2.score
-    );
-
-resultBtn.textContent =
-    "PRÓXIMA FASE";
-
-}
-
-function showFinalVictory() {
-
-resultScreen.classList.remove(
-    "hidden"
-);
-
-
-resultIcon.textContent =
-    "🏆";
-
-resultTitle.textContent =
-    "CAMPANHA CONCLUÍDA!";
-
-resultText.textContent =
-    "Os dois jogadores chegaram ao núcleo final.";
-
-resultScore1.textContent =
-    formatScore(
-        player1.score
-    );
-
-resultScore2.textContent =
-    formatScore(
-        player2.score
-    );
-
-resultBtn.textContent =
-    "JOGAR NOVAMENTE";
-
-}
-
-/* ============================================================
-GAME OVER
-============================================================ */
-
-function endGame() {
-
-gameRunning =
-    false;
-
-
-resultScreen.classList.remove(
-    "hidden"
-);
-
-
-resultIcon.textContent =
-    "☠";
-
-resultTitle.textContent =
-    "GAME OVER";
-
-resultText.textContent =
-    "Os dois jogadores ficaram sem vidas.";
-
-resultScore1.textContent =
-    formatScore(
-        player1.score
-    );
-
-resultScore2.textContent =
-    formatScore(
-        player2.score
-    );
-
-resultBtn.textContent =
-    "TENTAR NOVAMENTE";
-
-}
-
-/* ============================================================
-INICIAR FASE
-============================================================ */
-
-function startPhase() {
-
-phaseFinished =
-    false;
-
-gameRunning =
-    true;
-
-resultScreen.classList.add(
-    "hidden"
-);
-
-phaseScreen.classList.add(
-    "hidden"
-);
-
-
-particles = [];
-
-floatingTexts = [];
-
-combo = 0;
-
-comboTimer = 0;
-
-
-generateMap();
-
-createItems();
-
-createEnemies();
-
-
-player1.spawnX =
-    TILE * 2.5;
-
-player1.spawnY =
-    TILE * 2.5;
-
-
-player2.spawnX =
-    TILE * 25.5;
-
-player2.spawnY =
-    TILE * 17.5;
-
-
-player1.resetPosition();
-
-player2.resetPosition();
-
-
-/*
-    A cada nova fase
-    recupera uma vida,
-    sem ultrapassar o limite.
-*/
-
-if (
-    phaseIndex > 0
-) {
-
-    player1.lives =
-        Math.min(
-            difficulty.lives,
-            player1.lives + 1
+        ctx.arc(
+            p.x,
+            p.y,
+            p.size,
+            0,
+            Math.PI * 2
         );
 
-    player2.lives =
-        Math.min(
-            difficulty.lives,
-            player2.lives + 1
+        ctx.fill();
+
+    }
+
+    ctx.globalAlpha = 1;
+
+}
+
+
+/* =========================================================
+   TEXTO DA FASE
+========================================================= */
+
+function drawLevelInfo() {
+
+    ctx.save();
+
+    ctx.fillStyle =
+        "rgba(255,255,255,.65)";
+
+    ctx.font =
+        "bold 11px Arial";
+
+    ctx.textAlign = "center";
+
+    ctx.fillText(
+        `FASE ${level} • ${DIFFICULTIES[difficulty].label}`,
+        W / 2,
+        17
+    );
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   DRAW
+========================================================= */
+
+function draw(time) {
+
+    ctx.save();
+
+
+    if (
+        screenShake > 0
+    ) {
+
+        ctx.translate(
+            random(-4,4),
+            random(-4,4)
         );
 
-}
+    }
 
 
-updateHUD();
+    drawBackground();
 
-}
+    drawMap();
 
-/* ============================================================
-PRÓXIMA FASE
-============================================================ */
+    drawPortals();
 
-function nextPhase() {
+    drawCrystals(time);
 
-/*
-    Se a campanha acabou,
-    começa novamente.
-*/
+    drawPowerUps(time);
 
-if (
-    phaseIndex >=
-    PHASES.length - 1
-) {
+    drawEnemies();
 
-    phaseIndex = 0;
+    drawPlayer(player1);
 
-    player1.score = 0;
-    player2.score = 0;
+    drawPlayer(player2);
 
-    player1.lives =
-        difficulty.lives;
+    drawParticles();
 
-    player2.lives =
-        difficulty.lives;
+    drawLevelInfo();
 
-    player1.alive =
-        true;
 
-    player2.alive =
-        true;
-
-    startPhase();
-
-    return;
+    ctx.restore();
 
 }
 
 
-phaseIndex++;
+/* =========================================================
+   LOOP
+========================================================= */
 
-phaseScreen.classList.remove(
-    "hidden"
+function gameLoop(timestamp) {
+
+    if (!lastTime) {
+        lastTime = timestamp;
+    }
+
+
+    const dt =
+        (timestamp - lastTime) /
+        1000;
+
+
+    lastTime = timestamp;
+
+
+    update(dt);
+
+    draw(timestamp);
+
+
+    requestAnimationFrame(
+        gameLoop
+    );
+
+}
+
+
+/* =========================================================
+   FASE CONCLUÍDA
+========================================================= */
+
+function completeLevel() {
+
+    if (!gameRunning) {
+        return;
+    }
+
+
+    gameRunning = false;
+
+
+    player1.score +=
+        level * 100;
+
+
+    player2.score +=
+        level * 100;
+
+
+    if (
+        level < MAPS.length
+    ) {
+
+        messageIcon.textContent = "★";
+
+        messageTitle.textContent =
+            `FASE ${level} CONCLUÍDA!`;
+
+        messageText.textContent =
+            `Os dois jogadores ganharam ${level * 100} pontos. Prepare-se para a próxima fase!`;
+
+        messageBtn.textContent =
+            `IR PARA FASE ${level + 1}`;
+
+        messageScreen.classList.remove(
+            "hidden"
+        );
+
+        messageBtn.onclick =
+            () => {
+
+                level++;
+
+                initLevel();
+
+                messageScreen.classList.add(
+                    "hidden"
+                );
+
+                gameRunning = true;
+
+            };
+
+    } else {
+
+        messageIcon.textContent = "🏆";
+
+        messageTitle.textContent =
+            "VOCÊS VENCERAM!";
+
+        messageText.textContent =
+            `Pontuação final: ${player1.score} + ${player2.score}`;
+
+        messageBtn.textContent =
+            "JOGAR NOVAMENTE";
+
+        messageScreen.classList.remove(
+            "hidden"
+        );
+
+        messageBtn.onclick =
+            () => {
+
+                restartGame();
+
+                messageScreen.classList.add(
+                    "hidden"
+                );
+
+            };
+
+    }
+
+
+    updateHUD();
+
+}
+
+
+/* =========================================================
+   GAME OVER
+========================================================= */
+
+function checkGameOver() {
+
+    if (
+        player1.lives <= 0 &&
+        player2.lives <= 0
+    ) {
+
+        gameRunning = false;
+
+
+        messageIcon.textContent =
+            "☠";
+
+
+        messageTitle.textContent =
+            "GAME OVER";
+
+
+        messageText.textContent =
+            `Pontuação: ${player1.score} + ${player2.score}`;
+
+
+        messageBtn.textContent =
+            "TENTAR NOVAMENTE";
+
+
+        messageScreen.classList.remove(
+            "hidden"
+        );
+
+
+        messageBtn.onclick =
+            () => {
+
+                restartGame();
+
+                messageScreen.classList.add(
+                    "hidden"
+                );
+
+            };
+
+    }
+
+}
+
+
+/* =========================================================
+   PAUSA
+========================================================= */
+
+function togglePause() {
+
+    if (!gameRunning) {
+        return;
+    }
+
+
+    paused = !paused;
+
+
+    if (paused) {
+
+        pauseScreen.classList.remove(
+            "hidden"
+        );
+
+        pauseBtn.textContent =
+            "▶ CONTINUAR";
+
+    } else {
+
+        pauseScreen.classList.add(
+            "hidden"
+        );
+
+        pauseBtn.textContent =
+            "⏸ PAUSAR";
+
+    }
+
+}
+
+
+pauseBtn.addEventListener(
+    "click",
+    togglePause
 );
 
 
-phaseIcon.textContent =
-    String(
-        phaseIndex + 1
-    ).padStart(
-        2,
-        "0"
+resumeBtn.addEventListener(
+    "click",
+    togglePause
+);
+
+
+/* =========================================================
+   REINICIAR
+========================================================= */
+
+function restartGame() {
+
+    level = 1;
+
+    paused = false;
+
+    gameRunning = true;
+
+    particles = [];
+
+    startScreen.classList.add(
+        "hidden"
     );
 
-phaseTitle.textContent =
-    PHASES[
-        phaseIndex
-    ].name;
+    pauseScreen.classList.add(
+        "hidden"
+    );
 
-phaseDescription.textContent =
-    PHASES[
-        phaseIndex
-    ].description;
+    messageScreen.classList.add(
+        "hidden"
+    );
 
 
-gameRunning =
-    false;
+    pauseBtn.textContent =
+        "⏸ PAUSAR";
+
+
+    initLevel();
 
 }
 
-/* ============================================================
-MENU DE DIFICULDADE
-============================================================ */
+
+restartBtn.addEventListener(
+    "click",
+    restartGame
+);
+
+
+/* =========================================================
+   COMEÇAR
+========================================================= */
+
+startBtn.addEventListener(
+    "click",
+    () => {
+
+        level = 1;
+
+        gameRunning = true;
+
+        paused = false;
+
+        startScreen.classList.add(
+            "hidden"
+        );
+
+        initLevel();
+
+    }
+);
+
+
+/* =========================================================
+   ESCOLHA DE DIFICULDADE
+========================================================= */
 
 document
-.querySelectorAll(
-".difficulty-button"
-)
-.forEach(
-button => {
+    .querySelectorAll(".difficulty-btn")
+    .forEach(button => {
 
         button.addEventListener(
             "click",
             () => {
 
-                const key =
-                    button.dataset
-                        .difficulty;
-
-
-                difficultyKey =
-                    key;
-
-                difficulty =
-                    DIFFICULTIES[
-                        key
-                    ];
-
-
-                difficultyBadge.textContent =
-                    difficulty.name;
-
-
-                player1.lives =
-                    difficulty.lives;
-
-                player2.lives =
-                    difficulty.lives;
-
-
-                player1.score = 0;
-
-                player2.score = 0;
-
-
-                player1.alive =
-                    true;
-
-                player2.alive =
-                    true;
-
-
-                phaseIndex = 0;
-
-
-                difficultyScreen
-                    .classList
-                    .add(
-                        "hidden"
+                document
+                    .querySelectorAll(
+                        ".difficulty-btn"
+                    )
+                    .forEach(
+                        btn =>
+                            btn.classList.remove(
+                                "active"
+                            )
                     );
 
 
-                startPhase();
+                button.classList.add(
+                    "active"
+                );
+
+
+                difficulty =
+                    button.dataset.difficulty;
+
+
+                difficultyLabel.textContent =
+                    DIFFICULTIES[
+                        difficulty
+                    ].label;
 
             }
         );
 
-    }
-);
+    });
 
-/* ============================================================
-BOTÃO REINICIAR
-============================================================ */
 
-restartBtn.addEventListener(
-"click",
-() => {
+/* =========================================================
+   INICIALIZAÇÃO
+========================================================= */
 
-    difficultyScreen
-        .classList
-        .remove(
-            "hidden"
-        );
-
-    phaseScreen
-        .classList
-        .add(
-            "hidden"
-        );
-
-    resultScreen
-        .classList
-        .add(
-            "hidden"
-        );
-
-    gameRunning =
-        false;
-
-    phaseIndex = 0;
-
-    player1.score = 0;
-    player2.score = 0;
-
-}
-
-);
-
-/* ============================================================
-CONTINUAR
-============================================================ */
-
-continueBtn.addEventListener(
-"click",
-() => {
-
-    startPhase();
-
-}
-
-);
-
-resultBtn.addEventListener(
-"click",
-() => {
+function boot() {
 
     /*
-        Se ainda existem fases,
-        avança.
+        Criamos uma fase inicial
+        mesmo antes do botão iniciar,
+        para o canvas não ficar vazio.
     */
 
-    if (
-        phaseIndex <
-        PHASES.length - 1 &&
-        phaseFinished
-    ) {
+    level = 1;
 
-        nextPhase();
+    createPlayers();
 
-        return;
+    createCrystals();
 
-    }
+    createPowerUps();
+
+    createEnemies();
+
+    createPortals();
+
+    gameRunning = false;
+
+    draw(0);
+
+    updateHUD();
 
 
-    /*
-        Caso seja game over
-        ou final da campanha.
-    */
-
-    resultScreen
-        .classList
-        .add(
-            "hidden"
-        );
-
-    difficultyScreen
-        .classList
-        .remove(
-            "hidden"
-        );
-
-    phaseIndex = 0;
-
-    player1.score = 0;
-    player2.score = 0;
-
-    player1.lives =
-        difficulty.lives;
-
-    player2.lives =
-        difficulty.lives;
-
-    player1.alive =
-        true;
-
-    player2.alive =
-        true;
-
-    gameRunning =
-        false;
-
-}
-
-);
-
-/* ============================================================
-CHECAR FASE
-============================================================ */
-
-function checkPhaseComplete() {
-
-if (
-    remainingItems <= 0
-) {
-
-    finishPhase();
-
-}
-
-}
-
-/* ============================================================
-UPDATE
-============================================================ */
-
-function update() {
-
-if (
-    !gameRunning
-) {
-
-    return;
+    requestAnimationFrame(
+        gameLoop
+    );
 
 }
 
 
-frame++;
+boot();
+
+Como colocar no GitHub
+A estrutura do repositório precisa ficar exatamente assim:
+
+seu-projeto/
+│
+├── index.html
+├── style.css
+└── script.js
+
+Não coloque os arquivos dentro de outra pasta.
+
+O GitHub Pages procura um arquivo de entrada como index.html na fonte de publicação. 
+G
+GitHub Docs
+
+Depois:
+
+script.js
 
 
-player1.update();
+"use strict";
 
-player2.update();
+/*
+    MAZE CLASH
+    Jogo 2D para 2 jogadores
+    Sem bibliotecas externas.
 
+    JOGADOR 1:
+    W A S D = movimento
+    SPACE = dash
+    Q = pulso
 
-enemies.forEach(
-    enemy =>
-        enemy.update()
-);
+    JOGADOR 2:
+    SETAS = movimento
+    ENTER = dash
+    SHIFT = pulso
 
-
-updateParticles();
-
-
-if (
-    comboTimer > 0
-) {
-
-    comboTimer--;
-
-} else {
-
-    combo = 0;
-
-}
+    P = pausa
+    R = reiniciar
+*/
 
 
-checkPhaseComplete();
+/* =========================================================
+   CANVAS
+========================================================= */
 
-updateHUD();
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+const W = canvas.width;
+const H = canvas.height;
+
+
+/* =========================================================
+   INTERFACE
+========================================================= */
+
+const startScreen = document.getElementById("startScreen");
+const pauseScreen = document.getElementById("pauseScreen");
+const messageScreen = document.getElementById("messageScreen");
+
+const startBtn = document.getElementById("startBtn");
+const pauseBtn = document.getElementById("pauseBtn");
+const restartBtn = document.getElementById("restartBtn");
+const resumeBtn = document.getElementById("resumeBtn");
+
+const messageBtn = document.getElementById("messageBtn");
+const messageTitle = document.getElementById("messageTitle");
+const messageText = document.getElementById("messageText");
+const messageIcon = document.getElementById("messageIcon");
+
+const score1El = document.getElementById("score1");
+const score2El = document.getElementById("score2");
+
+const lives1El = document.getElementById("lives1");
+const lives2El = document.getElementById("lives2");
+
+const levelEl = document.getElementById("level");
+const difficultyLabel = document.getElementById("difficultyLabel");
+const progressBar = document.getElementById("progressBar");
+const objectiveEl = document.getElementById("objective");
+
+
+/* =========================================================
+   CONSTANTES
+========================================================= */
+
+const TILE = 40;
+
+const COLS = 21;
+const ROWS = 15;
+
+const MAP_WIDTH = COLS * TILE;
+const MAP_HEIGHT = ROWS * TILE;
 
 
 /*
-    As teclas "just pressed"
-    duram somente um frame.
+    1 = parede
+    0 = caminho
+    2 = cristal
+    3 = power-up
 */
 
-for (
-    const key in justPressed
-) {
+const MAPS = [
 
-    delete justPressed[key];
+    [
+        "111111111111111111111",
+        "100000000010000000001",
+        "101111011010110111101",
+        "100000010000010000001",
+        "101110111011101110101",
+        "100010000000000010001",
+        "111010111000111010111",
+        "100000100000001000001",
+        "111010111000111010111",
+        "100010000000000010001",
+        "101110111011101110101",
+        "100000010000010000001",
+        "101111011010110111101",
+        "100000000010000000001",
+        "111111111111111111111"
+    ],
+
+    [
+        "111111111111111111111",
+        "100000000000000000001",
+        "101111011111101111101",
+        "100000010000010000001",
+        "111110111011101111101",
+        "100010000000000010001",
+        "101010111000111010101",
+        "100000100000001000001",
+        "101010111000111010101",
+        "100010000000000010001",
+        "111110111011101111101",
+        "100000010000010000001",
+        "101111011111101111101",
+        "100000000000000000001",
+        "111111111111111111111"
+    ],
+
+    [
+        "111111111111111111111",
+        "100000100000000100001",
+        "101110101111111101101",
+        "100010100000000101001",
+        "111010111011101101111",
+        "100000001000100000001",
+        "101111101010101111101",
+        "100000000000000000001",
+        "101111101010101111101",
+        "100000001000100000001",
+        "111010111011101101111",
+        "100010100000000101001",
+        "101110101111111101101",
+        "100000100000000100001",
+        "111111111111111111111"
+    ]
+
+];
+
+
+/* =========================================================
+   CONFIGURAÇÕES DE DIFICULDADE
+========================================================= */
+
+const DIFFICULTIES = {
+
+    easy: {
+        label: "FÁCIL",
+        enemySpeed: 1.05,
+        enemyCount: 3,
+        enemyDamageCooldown: 1.4,
+        dashCooldown: 3.0,
+        pulseCooldown: 5.0
+    },
+
+    normal: {
+        label: "NORMAL",
+        enemySpeed: 1.35,
+        enemyCount: 4,
+        enemyDamageCooldown: 1.2,
+        dashCooldown: 3.0,
+        pulseCooldown: 4.5
+    },
+
+    hard: {
+        label: "DIFÍCIL",
+        enemySpeed: 1.65,
+        enemyCount: 5,
+        enemyDamageCooldown: 1.0,
+        dashCooldown: 3.0,
+        pulseCooldown: 4.0
+    }
+
+};
+
+
+/* =========================================================
+   ESTADO DO JOGO
+========================================================= */
+
+let difficulty = "normal";
+
+let gameRunning = false;
+let paused = false;
+
+let level = 1;
+
+let lastTime = 0;
+
+let particles = [];
+
+let crystals = [];
+
+let powerUps = [];
+
+let enemies = [];
+
+let portals = [];
+
+let keys = {};
+
+let totalCrystals = 0;
+
+let collectedCrystals = 0;
+
+let screenShake = 0;
+
+
+/* =========================================================
+   OBJETOS
+========================================================= */
+
+let player1;
+let player2;
+
+
+/* =========================================================
+   DIREÇÕES
+========================================================= */
+
+const DIR = {
+
+    up: {
+        x: 0,
+        y: -1
+    },
+
+    down: {
+        x: 0,
+        y: 1
+    },
+
+    left: {
+        x: -1,
+        y: 0
+    },
+
+    right: {
+        x: 1,
+        y: 0
+    }
+
+};
+
+
+/* =========================================================
+   UTILIDADES
+========================================================= */
+
+function clamp(value, min, max) {
+
+    return Math.max(min, Math.min(max, value));
 
 }
 
-}
 
-/* ============================================================
-DRAW
-============================================================ */
+function distance(a, b) {
 
-function draw() {
-
-drawBackground();
-
-drawMap();
-
-drawItems();
-
-
-enemies.forEach(
-    enemy =>
-        enemy.draw()
-);
-
-
-player1.draw();
-
-player2.draw();
-
-
-drawParticles();
+    return Math.hypot(
+        a.x - b.x,
+        a.y - b.y
+    );
 
 }
 
-/* ============================================================
-LOOP
-============================================================ */
 
-function loop() {
+function random(min, max) {
 
-update();
-
-draw();
-
-requestAnimationFrame(
-    loop
-);
+    return Math.random() * (max - min) + min;
 
 }
 
-/* ============================================================
-INICIALIZAÇÃO
-============================================================ */
 
-difficultyBadge.textContent =
-"NORMAL";
+function tileCenter(col, row) {
 
-updateHUD();
+    return {
+        x: col * TILE + TILE / 2,
+        y: row * TILE + TILE / 2
+    };
 
-loop();
+}
+
+
+function isWallAtPixel(x, y) {
+
+    const col = Math.floor(x / TILE);
+    const row = Math.floor(y / TILE);
+
+    if (
+        col < 0 ||
+        row < 0 ||
+        col >= COLS ||
+        row >= ROWS
+    ) {
+        return true;
+    }
+
+    return MAPS[level - 1][row][col] === "1";
+
+}
+
+
+function canMoveTo(x, y, radius) {
+
+    const points = [
+
+        { x: x - radius, y: y - radius },
+        { x: x + radius, y: y - radius },
+        { x: x - radius, y: y + radius },
+        { x: x + radius, y: y + radius }
+
+    ];
+
+    for (const point of points) {
+
+        if (isWallAtPixel(point.x, point.y)) {
+            return false;
+        }
+
+    }
+
+    return true;
+
+}
+
+
+function randomFreePosition() {
+
+    for (let i = 0; i < 500; i++) {
+
+        const col = Math.floor(random(1, COLS - 1));
+        const row = Math.floor(random(1, ROWS - 1));
+
+        if (
+            MAPS[level - 1][row][col] !== "1"
+        ) {
+
+            return tileCenter(col, row);
+
+        }
+
+    }
+
+    return tileCenter(1, 1);
+
+}
+
+
+/* =========================================================
+   CRIAÇÃO DOS JOGADORES
+========================================================= */
+
+function createPlayers() {
+
+    const p1Start = tileCenter(1, 1);
+
+    const p2Start = tileCenter(COLS - 2, ROWS - 2);
+
+
+    player1 = {
+
+        x: p1Start.x,
+        y: p1Start.y,
+
+        radius: 13,
+
+        speed: 145,
+
+        dir: { x: 1, y: 0 },
+
+        desired: { x: 1, y: 0 },
+
+        color: "#24b7ff",
+
+        score: 0,
+
+        lives: 3,
+
+        dashTimer: 0,
+
+        pulseTimer: 0,
+
+        invincible: 0,
+
+        powerTimer: 0,
+
+        dashFlash: 0
+
+    };
+
+
+    player2 = {
+
+        x: p2Start.x,
+        y: p2Start.y,
+
+        radius: 13,
+
+        speed: 145,
+
+        dir: { x: -1, y: 0 },
+
+        desired: { x: -1, y: 0 },
+
+        color: "#ff8b32",
+
+        score: 0,
+
+        lives: 3,
+
+        dashTimer: 0,
+
+        pulseTimer: 0,
+
+        invincible: 0,
+
+        powerTimer: 0,
+
+        dashFlash: 0
+
+    };
+
+}
+
+
+/* =========================================================
+   CRISTAIS
+========================================================= */
+
+function createCrystals() {
+
+    crystals = [];
+
+    collectedCrystals = 0;
+
+
+    for (let row = 1; row < ROWS - 1; row++) {
+
+        for (let col = 1; col < COLS - 1; col++) {
+
+            if (
+                MAPS[level - 1][row][col] !== "1"
+            ) {
+
+                const pos = tileCenter(col, row);
+
+                const nearP1 =
+                    distance(
+                        pos,
+                        tileCenter(1, 1)
+                    ) < 80;
+
+                const nearP2 =
+                    distance(
+                        pos,
+                        tileCenter(COLS - 2, ROWS - 2)
+                    ) < 80;
+
+
+                if (
+                    !nearP1 &&
+                    !nearP2 &&
+                    Math.random() < .78
+                ) {
+
+                    crystals.push({
+
+                        x: pos.x,
+                        y: pos.y,
+
+                        value: 10,
+
+                        pulse: random(0, Math.PI * 2),
+
+                        active: true
+
+                    });
+
+                }
+
+            }
+
+        }
+
+    }
+
+    totalCrystals = crystals.length;
+
+}
+
+
+/* =========================================================
+   POWER UPS
+========================================================= */
+
+function createPowerUps() {
+
+    powerUps = [];
+
+    const types = [
+        "speed",
+        "shield",
+        "freeze",
+        "bomb"
+    ];
+
+
+    for (let i = 0; i < 4; i++) {
+
+        const pos = randomFreePosition();
+
+        powerUps.push({
+
+            x: pos.x,
+            y: pos.y,
+
+            type: types[i],
+
+            active: true,
+
+            rotation: random(0, Math.PI * 2)
+
+        });
+
+    }
+
+}
+
+
+/* =========================================================
+   INIMIGOS
+========================================================= */
+
+function createEnemies() {
+
+    enemies = [];
+
+    const config = DIFFICULTIES[difficulty];
+
+
+    for (let i = 0; i < config.enemyCount; i++) {
+
+        let pos = randomFreePosition();
+
+
+        while (
+            distance(pos, player1) < 180 ||
+            distance(pos, player2) < 180
+        ) {
+
+            pos = randomFreePosition();
+
+        }
+
+
+        enemies.push({
+
+            x: pos.x,
+            y: pos.y,
+
+            radius: 13,
+
+            speed:
+                config.enemySpeed *
+                random(.85, 1.15),
+
+            color:
+                [
+                    "#ff3f68",
+                    "#b45cff",
+                    "#42e6a4",
+                    "#ffcf4a",
+                    "#ff5aa8"
+                ][i % 5],
+
+            stunned: 0,
+
+            changeTimer: random(0, 2),
+
+            target: null
+
+        });
+
+    }
+
+}
+
+
+/* =========================================================
+   PORTAIS
+========================================================= */
+
+function createPortals() {
+
+    portals = [];
+
+
+    portals.push({
