@@ -1,45 +1,41 @@
-:root {
-    --bg: #070914;
-    --panel: #10152a;
-    --panel2: #171d36;
-
-    --blue: #24b7ff;
-    --blue2: #087ee8;
-
-    --orange: #ff8b32;
-    --orange2: #ff4f1f;
-
-    --purple: #a855f7;
-    --green: #32e875;
-    --red: #ff465c;
-    --yellow: #ffd84d;
-
-    --text: #f3f6ff;
-    --muted: #8e98b8;
-
-    --border: rgba(255,255,255,.09);
-}
-
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
-html,
-body {
-    width: 100%;
-    min-height: 100%;
+:root {
+    --background: #070914;
+    --panel: #10162a;
+    --panel2: #151d35;
+
+    --blue: #22b8ff;
+    --blueDark: #0878d1;
+
+    --orange: #ff8b35;
+    --orangeDark: #e95718;
+
+    --purple: #a855f7;
+    --green: #32e875;
+    --red: #ff4560;
+    --yellow: #ffd447;
+
+    --text: #f4f7ff;
+    --muted: #929cb8;
+
+    --border: rgba(255,255,255,.1);
 }
 
 body {
+    min-height: 100vh;
+
     background:
         radial-gradient(
-            circle at 50% 0%,
-            rgba(74, 54, 180, .2),
-            transparent 40%
-        ),
-        #050711;
+            circle at top,
+            #18204b 0,
+            #080b18 42%,
+            #05060d 100%
+        );
 
     color: var(--text);
 
@@ -55,16 +51,16 @@ button {
     font-family: inherit;
 }
 
-.game-wrapper {
-    width: min(1200px, 100%);
+.page {
+    width: min(1180px, 100%);
     margin: auto;
-    padding: 16px;
+    padding: 15px;
 }
 
 
-/* ---------------- TOPBAR ---------------- */
+/* ================= HEADER ================= */
 
-.topbar {
+.header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -72,76 +68,74 @@ button {
     margin-bottom: 14px;
 }
 
-.brand {
+.logo {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
 }
 
-.logo {
-    width: 42px;
-    height: 42px;
-
+.logo > span {
     display: grid;
     place-items: center;
 
-    color: var(--blue);
-
-    border: 1px solid rgba(36,183,255,.4);
-
-    background:
-        linear-gradient(
-            135deg,
-            rgba(36,183,255,.2),
-            rgba(168,85,247,.12)
-        );
-
-    box-shadow:
-        0 0 20px rgba(36,183,255,.15);
+    width: 42px;
+    height: 42px;
 
     border-radius: 10px;
 
-    font-size: 24px;
+    color: var(--blue);
+
+    border: 1px solid rgba(34,184,255,.35);
+
+    background:
+        rgba(34,184,255,.08);
+
+    font-size: 25px;
+
+    box-shadow:
+        0 0 25px rgba(34,184,255,.15);
 }
 
-.brand h1 {
+.logo h1 {
     font-size: 20px;
     letter-spacing: 3px;
 }
 
-.brand span:last-child {
+.logo small {
     color: var(--muted);
-    font-size: 10px;
+    font-size: 9px;
     letter-spacing: 2px;
 }
 
-.top-actions {
+.header-buttons {
     display: flex;
     gap: 8px;
 }
 
-.top-actions button {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    color: var(--text);
-
+.header-buttons button {
     padding: 9px 13px;
 
     border-radius: 8px;
 
+    color: var(--text);
+
+    background: var(--panel);
+
+    border: 1px solid var(--border);
+
     cursor: pointer;
 
-    font-size: 11px;
+    font-size: 10px;
     font-weight: bold;
 }
 
-.top-actions button:hover {
+.header-buttons button:hover {
     border-color: var(--blue);
     color: var(--blue);
 }
 
 
-/* ---------------- HUD ---------------- */
+/* ================= HUD ================= */
 
 .hud {
     display: grid;
@@ -151,111 +145,121 @@ button {
         1.3fr
         1fr;
 
-    gap: 12px;
+    gap: 10px;
 
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 }
 
-.player-card,
-.center-info {
+.playerHud,
+.gameInfo {
+    min-height: 74px;
+
+    padding: 10px 13px;
+
+    border-radius: 11px;
+
     background:
         linear-gradient(
-            135deg,
-            rgba(255,255,255,.05),
+            145deg,
+            rgba(255,255,255,.055),
             rgba(255,255,255,.015)
         );
 
     border: 1px solid var(--border);
-
-    border-radius: 12px;
-
-    padding: 12px;
 }
 
-.player-card {
+.playerHud {
     display: grid;
+
     grid-template-columns: 1fr auto;
+
     align-items: center;
-    gap: 4px 10px;
 }
 
-.player-name {
-    font-size: 11px;
-    font-weight: bold;
+.playerHud b {
+    font-size: 10px;
     letter-spacing: 1px;
 }
 
-.player-icon {
-    margin-right: 5px;
-}
-
-.p1 .player-icon,
-.p1 .player-name {
-    color: var(--blue);
-}
-
-.p2 .player-icon,
-.p2 .player-name {
-    color: var(--orange);
-}
-
-.score {
-    text-align: right;
-}
-
-.score span {
-    color: var(--muted);
-    font-size: 8px;
-    display: block;
-}
-
-.score strong {
+.playerHud > strong {
     font-size: 20px;
 }
 
-.lives {
-    font-size: 13px;
+.playerHud .lives {
     grid-column: 1 / -1;
+
+    font-size: 12px;
 }
 
-.center-info {
+.blueDot,
+.orangeDot {
+    display: inline-block;
+
+    width: 7px;
+    height: 7px;
+
+    border-radius: 50%;
+
+    margin-left: 5px;
+}
+
+.blueDot {
+    background: var(--blue);
+    box-shadow: 0 0 10px var(--blue);
+}
+
+.orangeDot {
+    background: var(--orange);
+    box-shadow: 0 0 10px var(--orange);
+}
+
+.playerOneHud b {
+    color: var(--blue);
+}
+
+.playerTwoHud b {
+    color: var(--orange);
+}
+
+.gameInfo {
     text-align: center;
 
     display: flex;
     flex-direction: column;
+
     justify-content: center;
+
     gap: 5px;
+
+    font-size: 10px;
 }
 
-.level {
-    font-size: 11px;
+.gameInfo > div:first-child {
     letter-spacing: 2px;
 }
 
-.level strong {
+.gameInfo strong {
     color: var(--yellow);
 }
 
-.difficulty {
-    font-size: 9px;
+#difficultyText {
     color: var(--purple);
     font-weight: bold;
 }
 
-.progress {
+.bar {
     height: 5px;
-    width: 100%;
 
-    overflow: hidden;
+    background: #252c46;
 
     border-radius: 20px;
 
-    background: #242a43;
+    overflow: hidden;
 }
 
-.progress div {
-    height: 100%;
+#progressBar {
     width: 0%;
+    height: 100%;
 
     background:
         linear-gradient(
@@ -267,29 +271,28 @@ button {
     transition: width .2s;
 }
 
-.center-info small {
+.gameInfo small {
     color: var(--muted);
-    font-size: 9px;
 }
 
 
-/* ---------------- GAME ---------------- */
+/* ================= GAME ================= */
 
-.game-area {
+.gameContainer {
     position: relative;
 
     width: 100%;
 
-    border-radius: 16px;
-
     overflow: hidden;
+
+    border-radius: 15px;
 
     border: 1px solid var(--border);
 
-    background: #050711;
+    background: #050710;
 
     box-shadow:
-        0 20px 70px rgba(0,0,0,.45);
+        0 25px 80px rgba(0,0,0,.5);
 }
 
 canvas {
@@ -298,48 +301,50 @@ canvas {
     width: 100%;
     height: auto;
 
-    aspect-ratio: 840 / 600;
+    background: #070a16;
 
-    background: #060916;
+    image-rendering: auto;
 }
 
 
-/* ---------------- OVERLAYS ---------------- */
+/* ================= SCREENS ================= */
 
-.overlay {
+.screen {
     position: absolute;
 
     inset: 0;
 
+    z-index: 10;
+
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
+
+    padding: 20px;
 
     background:
         rgba(3,5,13,.82);
 
-    backdrop-filter: blur(8px);
-
-    z-index: 20;
-
-    padding: 20px;
+    backdrop-filter: blur(7px);
 }
 
-.overlay.hidden {
-    display: none;
+.hidden {
+    display: none !important;
 }
 
-.menu-box {
-    width: min(570px, 100%);
+.menuBox {
+    width: min(560px, 100%);
 
-    padding: 32px;
+    padding: 30px;
+
+    text-align: center;
 
     border-radius: 18px;
 
     background:
         linear-gradient(
             145deg,
-            #151b35,
+            #151c35,
             #0b1021
         );
 
@@ -347,27 +352,26 @@ canvas {
 
     box-shadow:
         0 30px 100px rgba(0,0,0,.7);
-
-    text-align: center;
 }
 
-.menu-box.small {
-    width: min(430px, 100%);
+.menuBox.small {
+    width: min(420px, 100%);
 }
 
-.menu-logo {
-    color: var(--blue);
-
+.bigIcon {
     font-size: 42px;
 
-    text-shadow:
-        0 0 30px rgba(36,183,255,.8);
+    color: var(--blue);
 
-    margin-bottom: 8px;
+    margin-bottom: 5px;
+
+    text-shadow:
+        0 0 30px rgba(34,184,255,.7);
 }
 
-.menu-box h2 {
-    font-size: 34px;
+.menuBox h2 {
+    font-size: 32px;
+
     letter-spacing: 5px;
 
     margin-bottom: 8px;
@@ -376,78 +380,76 @@ canvas {
 .subtitle {
     color: var(--muted);
 
-    font-size: 13px;
+    font-size: 12px;
 
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 
-.difficulty-select h3 {
+.menuBox h3 {
     color: var(--muted);
 
-    font-size: 10px;
+    font-size: 9px;
 
     letter-spacing: 2px;
 
-    margin-bottom: 10px;
+    margin-bottom: 9px;
 }
 
-.difficulty-buttons {
+.difficultyButtons {
     display: grid;
 
-    grid-template-columns: repeat(3,1fr);
+    grid-template-columns:
+        repeat(3, 1fr);
 
     gap: 8px;
 
-    margin-bottom: 18px;
+    margin-bottom: 16px;
 }
 
-.difficulty-btn {
-    border: 1px solid var(--border);
-
-    background: #0c1124;
-
-    color: var(--muted);
-
-    padding: 12px 7px;
+.difficultyButtons button {
+    padding: 11px 5px;
 
     border-radius: 8px;
 
+    background: #0a1022;
+
+    border: 1px solid var(--border);
+
+    color: var(--muted);
+
     cursor: pointer;
 
-    font-weight: bold;
     font-size: 10px;
+    font-weight: bold;
 }
 
-.difficulty-btn:hover,
-.difficulty-btn.active {
+.difficultyButtons button:hover,
+.difficultyButtons button.selected {
     color: white;
 
     border-color: var(--blue);
 
     background:
-        rgba(36,183,255,.12);
-
-    box-shadow:
-        0 0 20px rgba(36,183,255,.08);
+        rgba(34,184,255,.12);
 }
 
-.start-btn {
+.mainButton {
     width: 100%;
-
-    border: 0;
 
     padding: 14px;
 
+    border: 0;
+
     border-radius: 9px;
+
+    color: white;
 
     background:
         linear-gradient(
             90deg,
-            var(--blue2),
+            var(--blueDark),
             var(--purple)
         );
-
-    color: white;
 
     font-weight: bold;
 
@@ -455,11 +457,12 @@ canvas {
 
     cursor: pointer;
 
-    box-shadow:
-        0 8px 25px rgba(66,90,255,.25);
+    transition:
+        transform .15s,
+        filter .15s;
 }
 
-.start-btn:hover {
+.mainButton:hover {
     filter: brightness(1.15);
     transform: translateY(-1px);
 }
@@ -467,39 +470,33 @@ canvas {
 .controls {
     display: grid;
 
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns:
+        1fr 1fr;
 
-    gap: 10px;
+    gap: 9px;
 
-    margin-top: 18px;
+    margin-top: 15px;
 }
 
-.controls div {
-    background: rgba(255,255,255,.035);
+.controls > div {
+    text-align: left;
+
+    padding: 11px;
+
+    border-radius: 8px;
+
+    background:
+        rgba(255,255,255,.035);
 
     border: 1px solid var(--border);
-
-    border-radius: 9px;
-
-    padding: 12px;
-
-    text-align: left;
 }
 
-.controls strong {
+.controls b {
     display: block;
 
-    font-size: 10px;
+    margin-bottom: 5px;
 
-    margin-bottom: 7px;
-}
-
-.controls div:first-child strong {
-    color: var(--blue);
-}
-
-.controls div:last-child strong {
-    color: var(--orange);
+    font-size: 9px;
 }
 
 .controls span {
@@ -509,19 +506,27 @@ canvas {
 
     font-size: 9px;
 
-    line-height: 1.7;
+    line-height: 1.6;
+}
+
+.blueText {
+    color: var(--blue);
+}
+
+.orangeText {
+    color: var(--orange);
 }
 
 .tip {
-    margin-top: 18px;
+    margin-top: 15px;
 
     color: var(--muted);
 
-    font-size: 10px;
+    font-size: 9px;
 }
 
 
-/* ---------------- FOOTER ---------------- */
+/* ================= FOOTER ================= */
 
 footer {
     display: flex;
@@ -532,110 +537,78 @@ footer {
 
     gap: 18px;
 
-    padding: 13px;
+    padding: 12px;
 
     color: var(--muted);
 
     font-size: 9px;
-
-    letter-spacing: .5px;
-}
-
-.legend {
-    display: inline-block;
-
-    width: 7px;
-    height: 7px;
-
-    border-radius: 50%;
-
-    margin-right: 4px;
-}
-
-.legend.blue {
-    background: var(--blue);
-}
-
-.legend.orange {
-    background: var(--orange);
 }
 
 
-/* ---------------- RESPONSIVE ---------------- */
+/* ================= MOBILE ================= */
 
 @media (max-width: 760px) {
 
-    .game-wrapper {
-        padding: 8px;
+    .page {
+        padding: 7px;
     }
 
-    .topbar {
+    .header {
         align-items: flex-start;
     }
 
-    .brand h1 {
+    .logo h1 {
         font-size: 15px;
     }
 
-    .top-actions button {
-        font-size: 9px;
-        padding: 8px;
+    .logo small {
+        display: none;
+    }
+
+    .header-buttons button {
+        padding: 7px;
+        font-size: 8px;
     }
 
     .hud {
         grid-template-columns: 1fr 1fr;
     }
 
-    .center-info {
+    .gameInfo {
         grid-column: 1 / -1;
         grid-row: 1;
     }
 
-    .player-card {
+    .playerHud {
         grid-row: 2;
     }
 
-    .menu-box {
-        padding: 22px;
+    .menuBox {
+        padding: 20px;
     }
 
-    .menu-box h2 {
+    .menuBox h2 {
         font-size: 25px;
     }
 
     .controls {
         grid-template-columns: 1fr;
     }
-
-    footer {
-        gap: 9px;
-    }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 450px) {
 
-    .difficulty-buttons {
+    .difficultyButtons {
         grid-template-columns: 1fr;
     }
 
-    .brand span:last-child {
-        display: none;
+    .logo > span {
+        width: 34px;
+        height: 34px;
+        font-size: 19px;
     }
 
-    .top-actions button {
-        padding: 7px;
-    }
-
-    .hud {
-        gap: 6px;
-    }
-
-    .player-card,
-    .center-info {
-        padding: 8px;
-    }
-
-    .lives {
-        font-size: 10px;
+    footer {
+        gap: 9px;
     }
 }

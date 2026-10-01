@@ -2,263 +2,244 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#080b18">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
-    >
-
-    <meta
-        name="description"
-        content="Maze Clash - jogo 2D cooperativo para dois jogadores"
-    >
-
-    <title>Maze Clash - 2 Players</title>
+    <title>Pixel Quest 2P</title>
 
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <div class="game-wrapper">
+<div class="page">
 
-        <header class="topbar">
+    <header class="header">
 
-            <div class="brand">
-                <span class="logo">◆</span>
-                <div>
-                    <h1>MAZE CLASH</h1>
-                    <span>CO-OP ARCADE</span>
-                </div>
+        <div class="logo">
+            <span>✦</span>
+
+            <div>
+                <h1>PIXEL QUEST</h1>
+                <small>COOPERATIVE 2 PLAYER</small>
+            </div>
+        </div>
+
+        <div class="header-buttons">
+            <button id="pauseButton">PAUSAR</button>
+            <button id="restartButton">REINICIAR</button>
+        </div>
+
+    </header>
+
+
+    <section class="hud">
+
+        <div class="playerHud playerOneHud">
+
+            <div>
+                <b>JOGADOR 1</b>
+                <span class="blueDot"></span>
             </div>
 
-            <div class="top-actions">
-                <button id="pauseBtn">⏸ PAUSAR</button>
-                <button id="restartBtn">↻ REINICIAR</button>
+            <strong id="score1">0</strong>
+
+            <div id="lives1" class="lives">
+                ❤️ ❤️ ❤️
             </div>
 
-        </header>
+        </div>
 
 
-        <section class="hud">
+        <div class="gameInfo">
 
-            <div class="player-card p1">
-                <div class="player-name">
-                    <span class="player-icon">●</span>
-                    JOGADOR 1
-                </div>
-
-                <div class="score">
-                    <span>PONTOS</span>
-                    <strong id="score1">0</strong>
-                </div>
-
-                <div class="lives" id="lives1">
-                    ❤️ ❤️ ❤️
-                </div>
+            <div>
+                FASE <strong id="levelText">1</strong>/5
             </div>
 
-
-            <div class="center-info">
-
-                <div class="level">
-                    FASE <strong id="level">1</strong> / 3
-                </div>
-
-                <div class="difficulty">
-                    <span id="difficultyLabel">NORMAL</span>
-                </div>
-
-                <div class="progress">
-                    <div id="progressBar"></div>
-                </div>
-
-                <small id="objective">
-                    Colete todos os cristais!
-                </small>
-
+            <div id="difficultyText">
+                NORMAL
             </div>
 
-
-            <div class="player-card p2">
-
-                <div class="player-name">
-                    <span class="player-icon">●</span>
-                    JOGADOR 2
-                </div>
-
-                <div class="score">
-                    <span>PONTOS</span>
-                    <strong id="score2">0</strong>
-                </div>
-
-                <div class="lives" id="lives2">
-                    ❤️ ❤️ ❤️
-                </div>
-
+            <div class="bar">
+                <div id="progressBar"></div>
             </div>
 
-        </section>
+            <small id="objectiveText">
+                Colete os cristais.
+            </small>
+
+        </div>
 
 
-        <main class="game-area">
+        <div class="playerHud playerTwoHud">
 
-            <canvas id="gameCanvas" width="840" height="600">
-                Seu navegador não suporta Canvas.
-            </canvas>
+            <div>
+                <b>JOGADOR 2</b>
+                <span class="orangeDot"></span>
+            </div>
 
+            <strong id="score2">0</strong>
 
-            <div id="startScreen" class="overlay">
+            <div id="lives2" class="lives">
+                ❤️ ❤️ ❤️
+            </div>
 
-                <div class="menu-box">
+        </div>
 
-                    <div class="menu-logo">◆</div>
-
-                    <h2>MAZE CLASH</h2>
-
-                    <p class="subtitle">
-                        Dois jogadores. Uma arena. Três fases.
-                    </p>
+    </section>
 
 
-                    <div class="difficulty-select">
+    <main class="gameContainer">
 
-                        <h3>ESCOLHA A DIFICULDADE</h3>
+        <canvas
+            id="game"
+            width="960"
+            height="640">
+        </canvas>
 
-                        <div class="difficulty-buttons">
 
-                            <button
-                                class="difficulty-btn"
-                                data-difficulty="easy"
-                            >
-                                🟢 FÁCIL
-                            </button>
+        <!-- MENU -->
 
-                            <button
-                                class="difficulty-btn active"
-                                data-difficulty="normal"
-                            >
-                                🟡 NORMAL
-                            </button>
+        <div id="menu" class="screen">
 
-                            <button
-                                class="difficulty-btn"
-                                data-difficulty="hard"
-                            >
-                                🔴 DIFÍCIL
-                            </button>
+            <div class="menuBox">
 
-                        </div>
+                <div class="bigIcon">✦</div>
 
+                <h2>PIXEL QUEST</h2>
+
+                <p class="subtitle">
+                    Uma aventura cooperativa para dois jogadores.
+                </p>
+
+
+                <h3>DIFICULDADE</h3>
+
+                <div class="difficultyButtons">
+
+                    <button data-difficulty="easy">
+                        FÁCIL
+                    </button>
+
+                    <button
+                        data-difficulty="normal"
+                        class="selected">
+                        NORMAL
+                    </button>
+
+                    <button data-difficulty="hard">
+                        DIFÍCIL
+                    </button>
+
+                </div>
+
+
+                <button id="startButton" class="mainButton">
+                    ▶ COMEÇAR AVENTURA
+                </button>
+
+
+                <div class="controls">
+
+                    <div>
+                        <b class="blueText">
+                            🔵 JOGADOR 1
+                        </b>
+
+                        <span>W A S D — Mover</span>
+                        <span>ESPAÇO — Dash</span>
+                        <span>Q — Poder</span>
                     </div>
 
 
-                    <button id="startBtn" class="start-btn">
-                        ▶ COMEÇAR JOGO
-                    </button>
+                    <div>
+                        <b class="orangeText">
+                            🟠 JOGADOR 2
+                        </b>
 
-
-                    <div class="controls">
-
-                        <div>
-                            <strong>JOGADOR 1</strong>
-                            <span>W A S D = mover</span>
-                            <span>ESPAÇO = dash</span>
-                            <span>Q = pulso</span>
-                        </div>
-
-                        <div>
-                            <strong>JOGADOR 2</strong>
-                            <span>↑ ← ↓ → = mover</span>
-                            <span>ENTER = dash</span>
-                            <span>SHIFT = pulso</span>
-                        </div>
-
+                        <span>SETAS — Mover</span>
+                        <span>ENTER — Dash</span>
+                        <span>SHIFT — Poder</span>
                     </div>
 
-                    <p class="tip">
-                        💡 Colete os cristais, use os poderes e fuja dos inimigos!
-                    </p>
-
                 </div>
 
+
+                <p class="tip">
+                    Colete cristais, ative mecanismos e chegue à saída!
+                </p>
+
             </div>
 
+        </div>
 
-            <div id="pauseScreen" class="overlay hidden">
 
-                <div class="menu-box small">
+        <!-- PAUSE -->
 
-                    <div class="menu-logo">Ⅱ</div>
+        <div id="pauseScreen" class="screen hidden">
 
-                    <h2>JOGO PAUSADO</h2>
+            <div class="menuBox small">
 
-                    <p>
-                        Pressione P ou o botão abaixo para continuar.
-                    </p>
+                <div class="bigIcon">Ⅱ</div>
 
-                    <button id="resumeBtn" class="start-btn">
-                        ▶ CONTINUAR
-                    </button>
+                <h2>PAUSADO</h2>
 
+                <p>
+                    A aventura está pausada.
+                </p>
+
+                <button id="continueButton" class="mainButton">
+                    ▶ CONTINUAR
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- MENSAGEM -->
+
+        <div id="messageScreen" class="screen hidden">
+
+            <div class="menuBox small">
+
+                <div id="messageIcon" class="bigIcon">
+                    ★
                 </div>
 
-            </div>
+                <h2 id="messageTitle">
+                    FASE CONCLUÍDA
+                </h2>
 
+                <p id="messageText">
+                    Muito bem!
+                </p>
 
-            <div id="messageScreen" class="overlay hidden">
-
-                <div class="menu-box small">
-
-                    <div id="messageIcon" class="menu-logo">★</div>
-
-                    <h2 id="messageTitle">FASE CONCLUÍDA!</h2>
-
-                    <p id="messageText">
-                        Muito bem!
-                    </p>
-
-                    <button id="messageBtn" class="start-btn">
-                        CONTINUAR
-                    </button>
-
-                </div>
+                <button id="messageButton" class="mainButton">
+                    CONTINUAR
+                </button>
 
             </div>
 
-        </main>
+        </div>
+
+    </main>
 
 
-        <footer>
+    <footer>
 
-            <div>
-                <span class="legend blue"></span>
-                JOGADOR 1
-            </div>
+        <span>🔵 P1</span>
+        <span>🟠 P2</span>
+        <span>⚡ DASH</span>
+        <span>💥 PODER</span>
+        <span>P = PAUSA</span>
 
-            <div>
-                <span class="legend orange"></span>
-                JOGADOR 2
-            </div>
+    </footer>
 
-            <div>
-                ⚡ DASH
-            </div>
+</div>
 
-            <div>
-                💥 PULSO
-            </div>
-
-            <div>
-                P = PAUSAR
-            </div>
-
-        </footer>
-
-    </div>
-
-
-    <script src="script.js"></script>
+<script src="script.js"></script>
 
 </body>
 </html>
